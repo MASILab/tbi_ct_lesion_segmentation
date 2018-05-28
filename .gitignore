@@ -1,5 +1,8 @@
-# all data files
+# project-specific ignore directories
 data/
+models/weights/
+models/tensorboard
+results/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
