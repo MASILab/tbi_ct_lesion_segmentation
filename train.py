@@ -1,8 +1,8 @@
 import os
 
-from utils import utils, patch_ops 
+from utils import utils, patch_ops
 
-from keras.callbacks import ModelCheckpoint, TensorBoard
+from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.models import load_model
 from models.inception import inception
 
@@ -12,8 +12,8 @@ if __name__ == "__main__":
 
     num_channels = results.num_channels
     num_epochs = 1000000
-    num_patches = 1000 # 508257,
-    batch_size = 128 
+    num_patches = 508257
+    batch_size = 512
 
     WEIGHT_DIR = os.path.join("models", "weights")
     TB_LOG_DIR = os.path.join("models", "tensorboard", utils.now())
@@ -46,12 +46,16 @@ if __name__ == "__main__":
 
     # tensorboard
     tb = TensorBoard(log_dir=TB_LOG_DIR)
-    # TODO: add earlystopping
 
-    callbacks_list = [checkpoint, tb]
+    # early stopping
+    es = EarlyStopping(monitor="val_loss", min_delta=2e-4, patience=10,
+                       verbose=1, mode='min')
+
+    callbacks_list = [checkpoint, tb, es]
 
     ######### PREPROCESS TRAINING DATA #########
     DATA_DIR = os.path.join("data", "train")
+    HEALTHY_DIR = os.path.join(DATA_DIR, "healthy")
     PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessing")
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
     N4_SCRIPT_PATH = os.path.join("utils", "N4BiasFieldCorrection")
@@ -68,22 +72,46 @@ if __name__ == "__main__":
                                                 SKULLSTRIP_SCRIPT_PATH,
                                                 N4_SCRIPT_PATH)
 
-    print("*** PREPROCESSING COMPLETE ***")
-
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
         atlasdir=final_preprocess_dir,
         patchsize=PATCH_SIZE,
         max_patch=num_patches,
         num_channels=num_channels)
 
+    # get healthy patches
+    filenames = [x for x in os.listdir(HEALTHY_DIR)
+                 if not os.path.isdir((os.path.join(HEALTHY_DIR, x)))]
+
+    filenames.sort()
+
+    for filename in filenames:
+        final_preprocess_dir = utils.preprocess(filename,
+                                                HEALTHY_DIR,
+                                                PREPROCESSING_DIR,
+                                                SKULLSTRIP_SCRIPT_PATH,
+                                                N4_SCRIPT_PATH)
+
+    ct_healthy_patches, mask_healthy_patches = patch_ops.CreatePatchesForTraining(
+        atlasdir=final_preprocess_dir,
+        patchsize=PATCH_SIZE,
+        max_patch=num_patches,
+        num_channels=num_channels,
+        healthy=True)
+
     print("Individual patch dimensions:", ct_patches[0].shape)
     print("Num patches:", len(ct_patches))
     print("ct_patches shape: {}\nmask_patches shape: {}".format(
         ct_patches.shape, mask_patches.shape))
 
+    print("Num healthy patches:", len(ct_patches))
+    print("ct_healthy_patches shape: {}\nmask_healthy_patches shape: {}".format(
+        ct_healthy_patches.shape, mask_healthy_patches.shape))
+
     # train for some number of epochs
-    history = model.fit(ct_patches,
-                        mask_patches,
+    history = model.fit({'unhealthy_input': ct_patches,
+                         'healthy_input': ct_healthy_patches},
+                        {'unhealthy_output': mask_patches,
+                         'healthy_output': mask_healthy_patches},
                         batch_size=batch_size,
                         epochs=num_epochs,
                         verbose=1,
