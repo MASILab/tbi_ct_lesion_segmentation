@@ -18,7 +18,8 @@ import copy
 import csv
 
 
-def preprocess(filename, src_dir, preprocess_root_dir, skullstrip_script_path, n4_script_path):
+def preprocess(filename, src_dir, preprocess_root_dir, skullstrip_script_path, n4_script_path,
+        verbose=0):
     '''
     Preprocesses an image:
     1. skullstrip
@@ -41,13 +42,13 @@ def preprocess(filename, src_dir, preprocess_root_dir, skullstrip_script_path, n
             os.makedirs(d)
 
     if "CT" in filename:
-        skullstrip(filename, src_dir, SKULLSTRIP_DIR, skullstrip_script_path)
-        n4biascorrect(filename, SKULLSTRIP_DIR, N4_DIR, n4_script_path)
-        resample(filename, N4_DIR, RESAMPLE_DIR)
-        orient(filename, RESAMPLE_DIR, RAI_DIR)
+        skullstrip(filename, src_dir, SKULLSTRIP_DIR, skullstrip_script_path, verbose)
+        n4biascorrect(filename, SKULLSTRIP_DIR, N4_DIR, n4_script_path, verbose)
+        resample(filename, N4_DIR, RESAMPLE_DIR, verbose)
+        orient(filename, RESAMPLE_DIR, RAI_DIR, verbose)
     elif "mask" in filename or "multiatlas" in filename:
-        resample(filename, src_dir, RESAMPLE_DIR)
-        orient(filename, RESAMPLE_DIR, RAI_DIR)
+        resample(filename, src_dir, RESAMPLE_DIR, verbose)
+        orient(filename, RESAMPLE_DIR, RAI_DIR, verbose)
 
     return RAI_DIR
 
@@ -98,38 +99,6 @@ def parse_args(session):
                                 third is unskullstripped CT')
 
     return parser.parse_args()
-
-
-
-def n4biascorrect(filename, src_dir, dst_dir, script_path, verbose=0):
-    '''
-    N4 bias corrects a CT nifti image into data_dir/preprocessing/bias_correct_dir/
-
-    Params:
-        - filename: string, name of file to bias correct 
-        - src_dir: string, path to directory where the CT to be bias corrected is
-        - dst_dir: string, path to directory where the bias corrected CT is saved
-        - script_path: string, path to N4 executable from ANTs
-        - verbose: int, 0 for silent, 1 for verbose
-    '''
-
-    infile = os.path.join(src_dir, filename)
-    outfile = os.path.join(dst_dir, filename)
-
-    if os.path.exists(outfile):
-        if verbose == 1:
-            print("Already bias corrected", filename)
-        return
-
-    if verbose == 1:
-        print("N4 bias correcting", infile, "into" + " " + outfile)
-
-    call = os.path.join(".", script_path) + " -d 3 -s 3 -c [50x50x50x50,0.0001] -i" + " " +\
-        infile + " " + "-o" + " " + outfile + " -b 1 -r 1"
-    os.system(call)
-
-    if verbose == 1:
-        print("Bias correction complete")
 
 
 def now():
@@ -212,23 +181,20 @@ def get_dice(img1, img2):
     return 2. * intersection.sum() / img_sum
 
 
-def write_stats(filename, gt_filename, stats_file, suffix):
+def write_stats(filename, nii_obj, nii_obj_gt, stats_file):
     '''
     Writes to csv probability volumes and thresholded volumes.
 
     Params:
-        - filename: string, name of segmentation NIFTI file
-        - gt_filename: string, name of ground truth NIFTI file
+        - filename: string, name of the subject/file which was segmented
+        - nii_obj: nifti object, segmented CT
+        - nii_obj_gt: nifti object, ground truth segmentation
         - stats_file: string, path and filename of .csv file to hold statistics
-        - dice: float, dice score calculated when ground truth is available
-        - suffix: string, _CNNLesionMembership.nii.gz as specified in Roy's seg script
     '''
-    seg_filename = remove_ext(filename) + suffix
     SEVERE_HEMATOMA = 25000  # in mm^3
     threshold = 0.5
 
     # get ground truth severity
-    nii_obj_gt = nib.load(gt_filename)
     img_data_gt = nii_obj_gt.get_data()
     zooms_gt = nii_obj_gt.header.get_zooms()
     scaling_factor_gt = zooms_gt[0] * zooms_gt[1] * zooms_gt[2]
@@ -245,7 +211,7 @@ def write_stats(filename, gt_filename, stats_file, suffix):
 
     thresholded_vol_mm_gt = scaling_factor_gt * thresholded_vol_gt
 
-    # classify severity of hematoma in ground truth
+    # classify severity of largest hematoma in ground truth
     label_gt = measure.label(img_data_gt)
     props_gt = measure.regionprops(label_gt)
     if len(props_gt) > 0:
@@ -263,7 +229,6 @@ def write_stats(filename, gt_filename, stats_file, suffix):
     ##### SEGMENTATION DATA #####
 
     # load object tensor for calculations
-    nii_obj = nib.load(seg_filename)
     img_data = nii_obj.get_data()[:, :, :]
     zooms = nii_obj.header.get_zooms()
     scaling_factor = zooms[0] * zooms[1] * zooms[2]
@@ -299,11 +264,7 @@ def write_stats(filename, gt_filename, stats_file, suffix):
     else:
         severe_pred = 0
 
-    if os.path.exists(gt_filename):
-        print(seg_filename, '\n', gt_filename)
-        dice = get_dice(thresh_data, thresh_data_gt)
-    else:
-        dice = -1
+    dice = get_dice(thresh_data, thresh_data_gt)
 
     # write to file the two sums
     if not os.path.exists(stats_file):
@@ -366,7 +327,7 @@ def write_stats(filename, gt_filename, stats_file, suffix):
     return dice, thresholded_vol_mm, thresholded_vol_mm_gt
 
 
-def threshold(filename, src_dir, dst_dir, threshold, suffix):
+def threshold(filename, src_dir, dst_dir, threshold=0.5):
     '''
     Saves the thresholded image to the destination directory.
     Calls write_stats() to save statistics to file
@@ -376,7 +337,6 @@ def threshold(filename, src_dir, dst_dir, threshold, suffix):
         - src_dir: string, source directory where segmented NIFTI file exists
         - dst_dir: string, destination directory
         - threshold: float in [0,1], threshold at which to split between 0 and 1
-        - suffix: string, _CNNLesionMembership.nii.gz as specified in Roy's seg script
     '''
     seg_filename = filename
     # load object tensor for calculations
@@ -390,24 +350,4 @@ def threshold(filename, src_dir, dst_dir, threshold, suffix):
         img_data, affine=nii_obj.affine, header=nii_obj.header)
     nib.save(thresh_obj, os.path.join(
         dst_dir, get_root_filename(seg_filename)+"_thresh.nii.gz"))
-
-
-def segment(filename, src_dir, dst_dir, model_path, script_path):
-    '''
-    Segments a single image using Roy's neural CT segmenter
-    Segmented image saved to dst_dir/
-    Params:
-        - filename: string, name of NIFTI file to skullstrip 
-        - src_dir: string, source directory
-        - dst_dir: string, destination directory
-        - script_path: string, relative path to segmentation script
-        - model_path: string, relative path to neural net model for Roy's script
-    '''
-    infile = os.path.join(src_dir, filename)
-
-    call = ("python " + script_path
-            + " --models " + model_path
-            + " --ct " + infile + " --o " + dst_dir)
-
-    os.system(call)
 

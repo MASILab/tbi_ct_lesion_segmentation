@@ -1,5 +1,6 @@
 import os
 import nibabel as nib 
+from subprocess import Popen, PIPE
 
 def orient(filename, src_dir, dst_dir, verbose=0):
     '''
@@ -35,7 +36,7 @@ def orient(filename, src_dir, dst_dir, verbose=0):
         print("Orientation complete")
 
 
-def reorient(filename, orig_dir, seg_dir, seg_orient="RAI", SEG_SUFFIX=""):
+def reorient(filename, orig_dir, seg_dir, seg_orient="RAI"):
     '''
     Reorients a single image to its original orientation prior to being run
     through Roy's segmentation script (which uses RAI) using 3dresample.  
@@ -61,7 +62,7 @@ def reorient(filename, orig_dir, seg_dir, seg_orient="RAI", SEG_SUFFIX=""):
 
     # if three_digit_code != seg_orient:
     # reorient lesion membership
-    infile = os.path.join(seg_dir, remove_ext(filename)+SEG_SUFFIX)
+    infile = os.path.join(seg_dir, filename)
     outfile = os.path.join(dst_dir, filename)
     call = "3dresample -orient " + three_digit_code\
         + " -inset " + infile + " -prefix " + outfile

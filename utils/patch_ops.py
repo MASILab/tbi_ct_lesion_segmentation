@@ -36,15 +36,6 @@ def get_intersection(a, b):
     print(np.array(a).shape)
     print(np.array(b).shape)
 
-    '''
-
-    a_transpose = np.array(a).T
-    b_transpose = np.array(b).T
-
-    a_reformat = {tuple(x) for x in a_transpose}
-    b_reformat = {tuple(x) for x in b_transpose}
-    '''
-
     if len(a) == 3:
         # first change format to be a list of coordinates rather than one list per dimension
         a_reformat = [(x, y, z) for x, y, z in zip(a[0], a[1], a[2])]
@@ -75,21 +66,25 @@ def get_center_coords(ct, mask, ratio):
         - healthy_coords: set of tuples of rank 3, coordinates of healthy voxels
         - lesion_coords: set of tuples of rank 3, coordinates of lesion voxels
     '''
+
+    # These first two must be shuffled.
     if ratio == 1:
         # ct-valid patches
         ct_possible_centers = np.nonzero(ct)
-        healthy_coords = set([(x, y, z) for x, y, z in zip(ct_possible_centers[0],
+        healthy_coords = [(x, y, z) for x, y, z in zip(ct_possible_centers[0],
                                                            ct_possible_centers[1],
-                                                           ct_possible_centers[2])])
-        lesion_coords = {0, 0, 0}
+                                                           ct_possible_centers[2])]
+        healthy_coords = set(shuffle(healthy_coords, random_state=0))
+        lesion_coords = {(0,0,0),(0,0,0),(0,0,0),}
     elif ratio == 0:
-        healthy_coords = {0, 0, 0}
+        healthy_coords = {(0,0,0),(0,0,0),(0,0,0),}
         # mask lesion patches
         lesion_coords = np.nonzero(mask)
         # cuurently only works for 3D input images
-        lesion_coords = set([(x, y, z) for x, y, z in zip(lesion_coords[0],
+        lesion_coords = [(x, y, z) for x, y, z in zip(lesion_coords[0],
                                                           lesion_coords[1],
-                                                          lesion_coords[2])])
+                                                          lesion_coords[2])]
+        lesion_coords = set(shuffle(lesion_coords, random_state=0))
     else:
         # ct-valid patches
         ct_possible_centers = np.nonzero(ct)
@@ -97,7 +92,8 @@ def get_center_coords(ct, mask, ratio):
         healthy_coords = get_intersection(ct_possible_centers, zeros_coords)
         # mask lesion patches
         lesion_coords = np.nonzero(mask)
-        # cuurently only works for 3D input images
+        # currently only works for 3D input images
+        # This does not need to be shuffled since it will be shuffled later
         lesion_coords = set([(x, y, z) for x, y, z in zip(lesion_coords[0],
                                                           lesion_coords[1],
                                                           lesion_coords[2])])
@@ -122,15 +118,16 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels, ratio):
 
     healthy_coords, lesion_coords = get_center_coords(invols[0], mask, ratio)
 
-    # Using number of lesion_coords as the baseline for this decision.
-    num_patches = np.minimum(maxpatch, len(lesion_coords))
-    #num_patches = num_patches * (1 + ratio)
+    if ratio == 0:
+        num_patches = np.minimum(maxpatch, len(healthy_coords))
+    else:
+        num_patches = np.minimum(maxpatch, len(lesion_coords))
 
     # allocate ndarray of maxpatch size
     ct_tensor_shape = (num_patches, patchsize[0], patchsize[1], num_channels)
     mask_tensor_shape = (num_patches, patchsize[0], patchsize[1], 1)
     CTPatches = np.ndarray(ct_tensor_shape, dtype=np.float16)
-    MaskPatches = np.ndarray(ct_tensor_shape, dtype=np.float16)
+    MaskPatches = np.zeros(ct_tensor_shape, dtype=np.float16)
 
     # radius from the center coord to gather patches from
     patch_radius = patchsize // 2
@@ -147,7 +144,7 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels, ratio):
     # extract patches
     for counter, i in enumerate(target_indices):
         # swap over to healthy if past ratio limit
-        if counter >= ratio * num_patches:
+        if counter >= (1-ratio) * num_patches:
             # get coordinates from the iterator
             healthy_dims = next(healthy_patch_iter)
             x_1 = healthy_dims[0] - patch_radius[0]
@@ -204,7 +201,6 @@ def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
 
         total_num_patches = max_patch * numatlas
         single_subject_num_patches = total_num_patches // numatlas
-        print("Total number of lesion patches =", f)
         print("Allowed total number of lesion patches =", total_num_patches)
 
         CT_matsize = (total_num_patches, patchsize[0], patchsize[1], num_channels)
