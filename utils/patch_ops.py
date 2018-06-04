@@ -7,6 +7,9 @@ import random
 import copy
 from time import strftime, time
 
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import sys
 
 def PadImage(vol, padsize):
     dim = vol.shape
@@ -118,7 +121,7 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels, ratio):
 
     healthy_coords, lesion_coords = get_center_coords(invols[0], mask, ratio)
 
-    if ratio == 0:
+    if ratio == 1:
         num_patches = np.minimum(maxpatch, len(healthy_coords))
     else:
         num_patches = np.minimum(maxpatch, len(lesion_coords))
@@ -162,6 +165,29 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels, ratio):
             y_2 = lesion_dims[1] + patch_radius[1] + 1
             z = lesion_dims[2]
 
+        '''
+        # visualize a patch, then exit
+        # TODO: DEBUGGING
+        fig = plt.figure()
+        a = fig.add_subplot(1,2,1)
+        
+        imgplot = plt.imshow(invols[0][x_1:x_2, y_1:y_2, z])
+        a.set_title("CT patch")
+
+        a = fig.add_subplot(1,2,2)
+        maskplot = plt.imshow(mask[x_1:x_2, y_1:y_2, z])
+        a.set_title("Mask patch")
+
+        plt.show()
+
+        cmd = input()
+        if cmd == "q":
+            sys.exit()
+        '''
+
+
+
+
         # place patches in ndarrays
         for c in range(num_channels):
             CTPatches[i, :, :, c] = invols[c][x_1:x_2, y_1:y_2, z]
@@ -199,9 +225,9 @@ def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
         # hard coded for now
         healthy_ratio = 1
 
-        total_num_patches = max_patch * numatlas
+        total_num_patches = max_patch
         single_subject_num_patches = total_num_patches // numatlas
-        print("Allowed total number of lesion patches =", total_num_patches)
+        print("Allowed total number of patches =", total_num_patches)
 
         CT_matsize = (total_num_patches, patchsize[0], patchsize[1], num_channels)
         Mask_matsize = (total_num_patches, patchsize[0], patchsize[1], 1)
@@ -258,21 +284,14 @@ def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
         # get filenames
         ct_names = os.listdir(atlasdir)
         mask_names = os.listdir(atlasdir)
-        multiatlas_names = os.listdir(atlasdir)
-        if unskullstrippeddir:
-            unskullstripped_names = os.listdir(unskullstrippeddir)
 
         ct_names = [x for x in ct_names if "CT" in x]
         mask_names = [x for x in mask_names if "mask" in x]
-        multiatlas_names = [x for x in multiatlas_names if "multiatlas" in x]
 
         ct_names.sort()
         mask_names.sort()
-        multiatlas_names.sort()
-        if unskullstrippeddir:
-            unskullstripped_names.sort()
 
-        numatlas = len(multiatlas_names)
+        numatlas = len(ct_names)
 
         patchsize = np.asarray(patchsize, dtype=int)
         padsize = np.max(patchsize + 1) / 2
@@ -292,17 +311,12 @@ def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
         print("Total number of lesion patches =", f)
         total_num_patches = int(np.minimum(max_patch * numatlas, f))
         single_subject_num_patches = total_num_patches // numatlas
-        print("Allowed total number of lesion patches =", total_num_patches)
+        print("Allowed total number of patches =", total_num_patches)
 
         CT_matsize = (total_num_patches, patchsize[0], patchsize[1], num_channels)
         Mask_matsize = (total_num_patches, patchsize[0], patchsize[1], 1)
         CTPatches = np.zeros(CT_matsize, dtype=np.float16)
         MaskPatches = np.zeros(Mask_matsize, dtype=np.float16)
-
-        ID = strftime("%d-%m-%Y") + "_" + strftime("%H-%M-%S")
-        #print("Unique ID is %s " % (ID))
-
-        x = str(int(patchsize[0])) + "x" + str(int(patchsize[1]))
 
         count2 = 0
         count1 = 0
@@ -314,46 +328,23 @@ def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
         for i in tqdm(range(0, numatlas)):
             ctname = ct_names[i]
             ctname = os.path.join(atlasdir, ctname)
-            #print("Reading %s" % (ctname))
+
             temp = nib.load(ctname)
             ct = temp.get_data()
             ct = np.asarray(ct, dtype=np.float16)
 
-            multiatlasname = multiatlas_names[i]
-            multiatlasname = os.path.join(atlasdir, multiatlasname)
-            #print("Reading %s" % (multiatlasname))
-            temp = nib.load(multiatlasname)
-            multiatlas = temp.get_data()
-            multiatlas = np.asarray(multiatlas, dtype=np.float16)
-
-            if unskullstrippeddir:
-                unskullstrippedname = unskullstripped_names[i]
-                unskullstrippedname = os.path.join(atlasdir, unskullstrippedname)
-                #print("Reading %s" % (unskullstrippedname))
-                temp = nib.load(unskullstrippedname)
-                unskullstripped = temp.get_data()
-                unskullstripped = np.asarray(unskullstripped, dtype=np.float16)
-
             maskname = mask_names[i]
             maskname = os.path.join(atlasdir, maskname)
-            #print("Reading %s" % (maskname))
             temp = nib.load(maskname)
             mask = temp.get_data()
             mask = np.asarray(mask, dtype=np.float16)
 
             dim = ct.shape
-            #print("Image size = %d x %d x %d " % (dim[0], dim[1], dim[2]))
 
             ctt = PadImage(ct, padsize)
-            multiatlast = PadImage(multiatlas, padsize)
-            if unskullstrippeddir:
-                unskullstrippedt = PadImage(unskullstripped, padsize)
             maskt = PadImage(mask, padsize)
 
-            if unskullstrippeddir:
-                invols = [ctt, multiatlast, unskullstrippedt]
-            else:
-                invols = [ctt, multiatlast]
+            invols = [ctt]
 
             CTPatchesA, MaskPatchesA = get_patches(invols,
                                                    maskt,
@@ -363,24 +354,17 @@ def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
                                                    ratio=healthy_ratio)
 
             CTPatchesA = np.asarray(CTPatchesA, dtype=np.float16)
-            #MultiatlasPatchesA = np.asarray(MultiatlasPatchesA, dtype=np.float16)
             MaskPatchesA = np.asarray(MaskPatchesA, dtype=np.float16)
 
             for ct_patch, mask_patch in zip(CTPatchesA, MaskPatchesA):
                 CTPatches[indices[cur_idx], :, :, :] = ct_patch
-                #CTPatches[indices[cur_idx],:,:,1] = multiatlas_patch
                 MaskPatches[indices[cur_idx], :, :, :] = mask_patch
                 cur_idx += 1
 
             dim = CTPatchesA.shape
             count2 = count1 + dim[0]
-
-            #print("Atlas %d : indices [%d,%d]" %(i+1,count1,count2-1))
-            #CTPatches[count1:count2, :, :, :] = CTPatchesA
-            #MaskPatches[count1:count2, :, :, :] = MaskPatchesA
             count1 = count1 + dim[0]
 
-        #print("Total number of patches collected = " + str(count2))
         dim = (count2, patchsize[0], patchsize[1], int(1))
 
         return (CTPatches, MaskPatches)

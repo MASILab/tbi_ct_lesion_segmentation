@@ -160,14 +160,19 @@ def inception(num_channels, ds=2,lr=1e-4):
     # binary crossentropy with dice as a metric 
     model.compile(optimizer=Adam(lr=lr),
                   metrics=[dice_coef],
-                  loss={'unhealthy_output':true_positive_rate, 
-                        'healthy_output':false_positive_rate}, 
-                  loss_weights={'unhealthy_output':0.9,
-                                'healthy_output':0.1,})
+                  loss={'unhealthy_output':true_positive_rate_loss, 
+                        'healthy_output':false_positive_rate_loss}, 
+                  loss_weights={'unhealthy_output':0.5,
+                                'healthy_output':0.5,})
 
     return model
 
+'''
+
 def true_positive_rate(y_true, y_pred, smooth=1):
+    ALPHA = 1.
+    BETA = 1.
+
     bce = binary_crossentropy(y_true, y_pred)
 
     y_true_f = K.cast(K.flatten(y_true), dtype=tf.int32)
@@ -185,9 +190,13 @@ def true_positive_rate(y_true, y_pred, smooth=1):
 
     # bce plus false positive rate plus false negative rate
     # this weights the bce by the FPR and FNR
-    return bce + sensitivity
+    return ALPHA*bce + BETA*sensitivity
 
 def false_positive_rate(y_true, y_pred, smooth=1):
+    # two hyperparameters to scale the impact of BCE and FPR, respectively
+    ALPHA = 1.
+    BETA = 1.
+
     bce = binary_crossentropy(y_true, y_pred)
 
     y_true_f = K.cast(K.flatten(y_true), dtype=tf.int32)
@@ -205,7 +214,45 @@ def false_positive_rate(y_true, y_pred, smooth=1):
 
     # bce plus false positive rate plus false negative rate
     # this weights the bce by the FPR and FNR
-    return bce + (1-specificity)
+    return ALPHA*bce + BETA*(1-specificity)
+'''
+
+def weighted_dice_TPR(y_true, y_pred, smooth=1):
+    dice = dice_coef_loss(y_true, y_pred)
+
+    y_true_f = K.cast(K.flatten(y_true), dtype=tf.int32)
+    y_pred_f = K.cast(K.round(K.flatten(y_pred)), dtype=tf.int32)
+
+    c_matrix = tf.confusion_matrix(y_true_f, y_pred_f, num_classes=2)
+
+    true_positive = c_matrix[1,1]
+    false_positive = c_matrix[1,0]
+    true_negative = c_matrix[0,0]
+    false_negative = c_matrix[0,1]
+    
+    sensitivity = (smooth + true_positive) / (smooth + true_positive + false_negative)
+    sensitivity = K.cast(sensitivity, dtype=tf.float32)
+
+    return dice + sensitivity
+
+
+def weighted_dice_FPR(y_true, y_pred, smooth=1):
+    dice = dice_coef_loss(y_true, y_pred)
+
+    y_true_f = K.cast(K.flatten(y_true), dtype=tf.int32)
+    y_pred_f = K.cast(K.round(K.flatten(y_pred)), dtype=tf.int32)
+
+    c_matrix = tf.confusion_matrix(y_true_f, y_pred_f, num_classes=2)
+
+    true_positive = c_matrix[1,1]
+    false_positive = c_matrix[1,0]
+    true_negative = c_matrix[0,0]
+    false_negative = c_matrix[0,1]
+    
+    specificity = (smooth + true_negative) / (smooth + true_negative + false_positive)
+    specificity = K.cast(specificity, dtype=tf.float32)
+
+    return dice + (1-specificity)
 
 def weighted_bce(y_true, y_pred, smooth=1):
     bce = binary_crossentropy(y_true, y_pred)
@@ -229,6 +276,73 @@ def weighted_bce(y_true, y_pred, smooth=1):
     # bce plus false positive rate plus false negative rate
     # this weights the bce by the FPR and FNR
     return bce + (1-specificity) + (1-sensitivity)
+
+def true_positive(y_true, y_pred, smooth=1):
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+
+    intersection = K.sum(y_true_f * y_pred_f)
+    union = K.sum(y_true_f) + K.sum(y_pred_f)
+    return intersection#(intersection + smooth) / (union + smooth) / * (union+smooth)
+
+def true_positive_loss(y_true, y_pred):
+    return -true_positive(y_true, y_pred)
+
+def true_positive_rate(y_true, y_pred, smooth=1):
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    inverse_y_pred_f = 1 - y_pred_f
+    inverse_y_true_f = 1 - y_true_f
+
+    true_positives = K.sum(y_true_f * y_pred_f)
+    false_positives = K.sum(y_pred_f) - true_positives
+    true_negatives = K.sum(inverse_y_pred_f * inverse_y_true_f)
+    false_negatives = K.sum(inverse_y_pred_f) - true_negatives
+
+    sensitivity = true_positives / (true_positives + false_negatives)
+    return sensitivity
+
+def true_positive_rate_loss(y_true, y_pred):
+    return -true_positive_rate(y_true, y_pred)
+
+def false_positive_rate(y_true, y_pred, smooth=1):
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+    inverse_y_pred_f = 1 - y_pred_f
+    inverse_y_true_f = 1 - y_true_f
+
+    true_positives = K.sum(y_true_f * y_pred_f)
+    false_positives = K.sum(y_pred_f) - true_positives
+    true_negatives = K.sum(inverse_y_pred_f * inverse_y_true_f)
+    false_negatives = K.sum(inverse_y_pred_f) - true_negatives
+
+    specificity = true_negatives / (true_negatives + false_positives)
+
+    return (1 - specificity)
+
+def false_positive_rate_loss(y_true, y_pred):
+    return false_positive_rate(y_true, y_pred)
+
+
+def false_positive(y_true, y_pred, smooth=1):
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+
+    # this is true positive
+    intersection = K.sum(y_true_f * y_pred_f)
+    union = K.sum(y_true_f) + K.sum(y_pred_f)
+
+    # this is all positives
+    all_pos = K.sum(y_true_f)
+
+    # false positive is the remainder
+    false_pos = all_pos - intersection
+
+    return false_pos#(false_pos + smooth) / (union + smooth) / * (union+smooth)
+
+def false_positive_loss(y_true, y_pred):
+    return false_positive(y_true, y_pred)
+
 
 def dice_coef(y_true, y_pred, smooth=1):
     y_true_f = K.flatten(y_true)

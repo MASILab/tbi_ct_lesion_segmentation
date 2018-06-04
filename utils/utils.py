@@ -74,6 +74,9 @@ def parse_args(session):
         parser.add_argument('--psize', required=True, action='store', dest='patch_size',
                             help='Patch size, eg: 45x45. Patch sizes are separated by x\
                                     and in voxels')
+        parser.add_argument('--num_patches', required=False, action='store', dest='num_patches',
+                            default=1500000, type=int,
+                            help='Maximum allowed number of patches. Default is all possible.')
     elif session == "test":
         parser.add_argument('--infile', required=True, action='store', dest='INFILE',
                             help='Image to classify')
@@ -181,7 +184,7 @@ def get_dice(img1, img2):
     return 2. * intersection.sum() / img_sum
 
 
-def write_stats(filename, nii_obj, nii_obj_gt, stats_file):
+def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
     '''
     Writes to csv probability volumes and thresholded volumes.
 
@@ -192,7 +195,6 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file):
         - stats_file: string, path and filename of .csv file to hold statistics
     '''
     SEVERE_HEMATOMA = 25000  # in mm^3
-    threshold = 0.5
 
     # get ground truth severity
     img_data_gt = nii_obj_gt.get_data()

@@ -17,17 +17,11 @@ import os
 import numpy as np
 import nibabel as nib
 from utils import utils
-from utils.apply_model import apply_model
+from utils.apply_model import apply_model_single_input as apply_model
 from keras.models import load_model
 from keras import backend as K
-from models.dual_loss_inception import inception,\
-                                       true_positive_rate,\
-                                       false_positive_rate,\
-                                       true_positive_loss,\
-                                       false_positive_loss,\
-                                       true_positive_rate_loss,\
-                                       false_positive_rate_loss,\
-                                       dice_coef
+from models.inception import inception,\
+                             dice_coef
 
 
 if __name__ == "__main__":
@@ -47,8 +41,7 @@ if __name__ == "__main__":
     SEG_SCRIPT_PATH = os.path.join("TBISegmentation_for_CT_Test.py")
 
     # SIGMOID ACTIVATION MEANS 0.5 FOR THRESH
-    # otherwise calculated by another file
-    thresh = 0.9
+    thresh = 0.5
 
     ######################## PREPROCESS TESTING DATA ########################
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
@@ -80,14 +73,7 @@ if __name__ == "__main__":
                                                 N4_SCRIPT_PATH)
 
     ######################## LOAD MODEL ########################
-    model = load_model(model_filename, custom_objects={
-                   'true_positive_rate':true_positive_rate,
-                   'false_positive_rate':false_positive_rate,
-                   'true_positive_rate_loss':true_positive_rate_loss,
-                   'false_positive_rate_loss':false_positive_rate_loss,
-                   'true_positive_loss':true_positive_loss,
-                   'false_positive_loss':false_positive_loss,
-                   'dice_coef':dice_coef,})
+    model = load_model(model_filename, custom_objects={'dice_coef':dice_coef,})
 
     ######################## SEGMENT FILES ########################
     filenames = [x for x in os.listdir(final_preprocess_dir)
@@ -136,8 +122,7 @@ if __name__ == "__main__":
         cur_dice, cur_vol, cur_vol_gt = utils.write_stats(filename,
                                                           segmented_nii_obj,
                                                           mask_obj,
-                                                          STATS_FILE,
-                                                          thresh,)
+                                                          STATS_FILE,)
 
         mean_dice += cur_dice
         pred_vols.append(cur_vol)
@@ -149,7 +134,7 @@ if __name__ == "__main__":
 
         # get probability volumes and threshold image
         print("Thresholding...")
-        utils.threshold(filename, REORIENT_DIR, REORIENT_DIR, thresh)
+        utils.threshold(filename, REORIENT_DIR, REORIENT_DIR,)
 
     print("*** Segmentation complete. ***")
     print("Mean DICE: {:.3f}".format(mean_dice/len(filenames)))
