@@ -94,8 +94,8 @@ if __name__ == "__main__":
         nii_img = np.reshape(nii_img, nii_img.shape + (1,))
 
         # segment
-        #segmented_img = apply_model(nii_img, model)
-        segmented_img = apply_model_single_input(nii_img, model)
+        segmented_img = apply_model(nii_img, model)
+        #segmented_img = apply_model_single_input(nii_img, model)
 
         # save resultant image
         segmented_filename = os.path.join(SEG_DIR, filename)
@@ -133,8 +133,7 @@ if __name__ == "__main__":
     corr = np.corrcoef(pred_vols, gt_vols)[0,1]
     print("*** Segmentation complete. ***")
     print("Mean DICE: {:.3f}".format(mean_dice))
-    print("Volume Correlation:")
-    print(corr)
+    print("Volume Correlation: {:.4f}".format(corr))
 
     # save these two numbers to file
     metrics_path = os.path.join(STATS_DIR, "metrics.txt")

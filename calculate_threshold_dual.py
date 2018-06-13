@@ -170,8 +170,8 @@ if __name__ == "__main__":
         nii_img = np.reshape(nii_img, nii_img.shape + (1,))
 
         # segment
-        #segmented_img = apply_model(nii_img, model)
-        segmented_img = apply_model_single_input(nii_img, model)
+        segmented_img = apply_model(nii_img, model)
+        #segmented_img = apply_model_single_input(nii_img, model)
         # save resultant image
         segmented_nii_obj = nib.Nifti1Image(
             segmented_img, affine=affine, header=header)
@@ -180,9 +180,9 @@ if __name__ == "__main__":
     ######################## FIND BEST THRESHOLD ########################
 
     h = 0.025  # step size to check for in exhaustive search
-    init = 0.675
+    init = 0.5
     halt = 1
-    patience = 15
+    patience = 10
     cur_iter = 0
 
     best_dice_opt_for_dice = 0
@@ -244,9 +244,6 @@ if __name__ == "__main__":
             best_corr_opt_for_both = np.abs(corr)
         else:
             cur_iter += 1
-        print("*** Current Iteration Results ***")
-        print("Best_threshold: {:.4f}\tBest Dice: {:.4f}\tBest Corr: {:.4f}\n".format(
-            cur_threshold, avg_dice, np.abs(corr)))
 
         print("=== Optimizing for Dice ===")
         print("Best_threshold: {:.4f}\tBest Dice: {:.4f}\tBest Corr: {:.4f}\n".format(
@@ -265,11 +262,11 @@ if __name__ == "__main__":
     print("Best threshold for Dice: {}".format(threshold_opt_for_dice))
     print("Best threshold for Correlation: {}".format(threshold_opt_for_corr))
     print("Best threshold for Both: {}".format(threshold_opt_for_both))
-    '''
     threshold_path = os.path.join("results", "thresholds")
     if not os.path.exists(threshold_path):
         os.makedirs(threshold_path)
 
+    '''
     with open(os.path.join(threshold_path, "best_threshold.txt"), 'w') as f:
         f.write("Best_threshold: {}".format(np.around(threshold, decimals=6)))
     '''

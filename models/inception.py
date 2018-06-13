@@ -28,7 +28,7 @@ def get_inception_layer(prev_layer, ds=2):
 
     return out_layer
 
-def inception(num_channels, ds=2,lr=1e-4):
+def inception(num_channels, loss=binary_crossentropy, ds=2,lr=1e-4):
 
     inputs = Input((None, None, num_channels))
 
@@ -48,12 +48,11 @@ def inception(num_channels, ds=2,lr=1e-4):
     # binary crossentropy with dice as a metric 
     model.compile(optimizer=Adam(lr=lr),
                   metrics=[dice_coef],
-                  loss=binary_crossentropy)
-                  #loss=weighted_bce)
+                  loss=loss)
 
     return model
 
-def dual_pass_inception(num_channels, lr=1e-4):
+def dual_pass_inception(num_channels, loss=binary_crossentropy, lr=1e-4):
     inputs = Input((None, None, num_channels))
 
     x = Conv2D(64, (3,3), strides=(1,1), activation='relu', padding='same')(inputs)
@@ -84,7 +83,8 @@ def dual_pass_inception(num_channels, lr=1e-4):
     # binary crossentropy with dice as a metric 
     model.compile(optimizer=Adam(lr=lr),
                   metrics=[dice_coef],
-                  loss='binary_crossentropy')
+                  loss=loss,
+                  )
 
     return model
 
@@ -155,5 +155,13 @@ def dice_coef(y_true, y_pred, smooth=1):
     union = K.sum(y_true_f) + K.sum(y_pred_f)
     return (2. * intersection + smooth) / (union + smooth)
 
+def dice_coef_no_round(y_true, y_pred, smooth=1):
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
+
+    intersection = K.sum(y_true_f * y_pred_f)
+    union = K.sum(y_true_f) + K.sum(y_pred_f)
+    return (2. * intersection + smooth) / (union + smooth)
+
 def dice_coef_loss(y_true, y_pred):
-    return -dice_coef(y_true, y_pred)
+    return -dice_coef_no_round(y_true, y_pred)

@@ -7,6 +7,7 @@ from utils import utils, patch_ops
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
 from keras.models import load_model
 from models.losses import *
+from models.inception import inception
 from models.dual_loss_inception import inception as dual_loss_inception
 from models.inception import inception
 
@@ -35,24 +36,34 @@ if __name__ == "__main__":
     PATCH_SIZE = [int(x) for x in results.patch_size.split("x")]
 
     ######### MODEL AND CALLBACKS #########
-    #model = dual_loss_inception(num_channels=num_channels, lr=learning_rate)
-    #monitor = "val_unhealthy_output_continuous_dice_coef"
-
-    # determine loss
-    if loss == "dice_coef":
-        loss = dice_coef_loss
-    elif loss == "bce":
-        loss = binary_crossentropy
-    elif loss == "tpr":
-        loss = true_positive_rate_loss
+    if loss == "bce":
+        unhealthy_loss = tpr_weighted_bce_loss
+        healthy_loss = fpr_weighted_bce_loss
+    elif loss == "dice_coef":
+        unhealthy_loss = tpr_weighted_dice_loss
+        healthy_loss = fpr_weighted_dice_loss
     elif loss == "cdc":
-        loss = continuous_dice_coef_loss
+        unhealthy_loss = tpr_weighted_cdc_loss
+        healthy_loss = fpr_weighted_cdc_loss
+    elif loss == "tpw_cdc":
+        unhealthy_loss = true_positive_continuous_dice_coef_loss 
+        healthy_loss = false_positive_continuous_dice_coef_loss 
+    elif loss == "bce_tp":
+        unhealthy_loss = bce_of_true_positive 
+        healthy_loss = false_positive_rate
     else:
-        print("\nInvalid loss function.\n")
+        print("Invalid loss entered")
         sys.exit()
 
-    model = inception(num_channels=num_channels, loss=loss, ds=4, lr=learning_rate)
-    monitor = "val_dice_coef"
+    model = dual_loss_inception(num_channels=num_channels,
+                                ds=4,
+                                healthy_loss=healthy_loss,
+                                unhealthy_loss=unhealthy_loss,
+                                lr=learning_rate)
+    monitor = "val_unhealthy_output_continuous_dice_coef"
+
+    #model = inception(num_channels=num_channels, ds=4, lr=learning_rate)
+    #monitor = "val_dice_coef"
 
     print(model.summary())
 
@@ -120,7 +131,6 @@ if __name__ == "__main__":
         max_patch=num_patches,
         num_channels=num_channels)
 
-    """
     # get healthy patches
     print("***** GETTING HEALTHY PATCHES *****")
     filenames = [x for x in os.listdir(HEALTHY_DIR)
@@ -142,37 +152,24 @@ if __name__ == "__main__":
         max_patch=len(ct_patches),
         num_channels=num_channels,
         healthy=True)
-    """
 
     print("Individual patch dimensions:", ct_patches[0].shape)
     print("Num patches:", len(ct_patches))
     print("ct_patches shape: {}\nmask_patches shape: {}".format(
         ct_patches.shape, mask_patches.shape))
 
-    """
     print("Num healthy patches:", len(ct_healthy_patches))
     print("ct_healthy_patches shape: {}\nmask_healthy_patches shape: {}".format(
         ct_healthy_patches.shape, mask_healthy_patches.shape))
 
     ct_healthy_patches = ct_healthy_patches[:len(ct_patches)]
     mask_healthy_patches = mask_healthy_patches[:len(mask_patches)]
-    """
 
     # train for some number of epochs
-    """
     history = model.fit({'unhealthy_input': ct_patches,
                          'healthy_input': ct_healthy_patches},
                         {'unhealthy_output': mask_patches,
                          'healthy_output': mask_healthy_patches},
-                        batch_size=batch_size,
-                        epochs=num_epochs,
-                        verbose=1,
-                        validation_split=0.2,
-                        callbacks=callbacks_list,)
-    """
-    
-    history = model.fit(ct_patches,
-                        mask_patches,
                         batch_size=batch_size,
                         epochs=num_epochs,
                         verbose=1,

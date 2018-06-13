@@ -74,6 +74,17 @@ def parse_args(session):
         parser.add_argument('--psize', required=True, action='store', dest='patch_size',
                             help='Patch size, eg: 45x45. Patch sizes are separated by x\
                                     and in voxels')
+        parser.add_argument('--batch_size', required=False, action='store', dest='batch_size',
+                            default=256, type=int,
+                            help='Batch size for training.')
+        parser.add_argument('--loss', required=False, action='store', dest='loss',
+                            default='bce', type=str,
+                            help='Loss for the model to optimize over. Options are: \
+                            bce, dice_coef, tpr, cdc, tpw_cdc, bce_tp')
+        parser.add_argument('--experiment_details', required=False, action='store',
+                            dest='experiment_details', default='experiment_details', type=str,
+                            help='Description of experiment, used to create folder to save\
+                                    weights.')
         parser.add_argument('--num_patches', required=False, action='store', dest='num_patches',
                             default=1500000, type=int,
                             help='Maximum allowed number of patches. Default is all possible.')
@@ -92,12 +103,15 @@ def parse_args(session):
                             help='Where the initial unprocessed data is')
         parser.add_argument('--weights', required=True, action='store', dest='weights',
                             help='Learnt weights (.hdf5) file')
+        parser.add_argument('--threshold', required=False, action='store', dest='threshold',
+                            type=float, default=0.5,
+                            help='Scalar in [0,1] to use as binarizing threshold.')
     else:
         print("Invalid session. Must be one of \"train\", \"validate\", or \"test\"")
         sys.exit()
 
-    parser.add_argument('--num_channels', required=True, type=int, action='store',
-                        dest='num_channels',
+    parser.add_argument('--num_channels', required=False, type=int, action='store',
+                        dest='num_channels', default=1, 
                         help='Number of channels to include. First is CT, second is atlas,\
                                 third is unskullstripped CT')
 
