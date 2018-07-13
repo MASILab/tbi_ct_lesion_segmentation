@@ -18,6 +18,7 @@ if __name__ == "__main__":
     num_epochs = 1000000
     num_patches = results.num_patches  # 508257
     batch_size = results.batch_size 
+    model = results.model
     experiment_details = results.experiment_details
     loss = results.loss
     learning_rate = 1e-4
@@ -51,7 +52,12 @@ if __name__ == "__main__":
         print("\nInvalid loss function.\n")
         sys.exit()
 
-    model = inception(num_channels=num_channels, loss=loss, ds=4, lr=learning_rate)
+    if not model:
+        model = inception(num_channels=num_channels, loss=loss, ds=4, lr=learning_rate)
+    else:
+        print("Continuing training with", model)
+        model = load_model(model, custom_objects=custom_losses)
+
     monitor = "val_dice_coef"
 
     print(model.summary())
@@ -115,7 +121,8 @@ if __name__ == "__main__":
                                                 N4_SCRIPT_PATH)
 
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
-        atlasdir=final_preprocess_dir,
+        #atlasdir=final_preprocess_dir,
+        atlasdir=os.path.join(PREPROCESSING_DIR, "small_test"),
         patchsize=PATCH_SIZE,
         max_patch=num_patches,
         num_channels=num_channels)

@@ -169,6 +169,8 @@ if __name__ == "__main__":
         # reshape to account for implicit "1" channel
         nii_img = np.reshape(nii_img, nii_img.shape + (1,))
 
+        print("Max: {} Min: {}".format(np.max(nii_img), np.min(nii_img)))
+
         # segment
         segmented_img = apply_model(nii_img, model)
         #segmented_img = apply_model_single_input(nii_img, model)

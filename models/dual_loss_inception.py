@@ -29,6 +29,47 @@ def get_inception_layer(prev_layer, ds=2):
 
     return out_layer
 
+def base_inception(ds=2):
+    conv1 = Conv2D(64//ds, (3,3), strides=(1,1), activation='relu', padding='same')
+    conv2 = Conv2D(64//ds, (3,3), strides=(1,1), activation='relu', padding='same')(conv1)
+
+    incep1 = get_inception_layer(conv2, ds=ds)
+    incep2 = get_inception_layer(incep1, ds=ds)
+    incep3 = get_inception_layer(incep2, ds=ds)
+
+    conv3 = Conv2D(32//ds, (5,5), strides=(1,1), activation='relu', padding='same')(incep3)
+    conv4 = Conv2D(16//ds, (3,3), strides=(1,1), activation='relu', padding='same')(conv3)
+    conv5 = Conv2D(1, (1,1), strides=(1,1), activation='sigmoid')(conv4)
+
+    return conv5
+
+
+def multi_inception(num_channels, healthy_loss, unhealthy_loss, ds=2, lr=1e-4):
+
+    inception_root = base_inception(ds=ds)
+
+    unhealthy_input = Input((None, None, num_channels), name='unhealthy_input')
+    unhealthy_output = inception_root(unhealthy_input)
+    unhealthy_output = Activation('linear', name='unhealthy_output')(unhealthy_output)
+
+    healthy_input = Input((None, None, num_channels), name='healthy_input')
+    healthy_output = inception_root(healthy_input)
+    healthy_output = Activation('linear', name='healthy_output')(healthy_output)
+
+    model = Model(inputs=[unhealthy_input, healthy_input], 
+                  outputs=[unhealthy_output, healthy_output])
+
+    # binary crossentropy with dice as a metric 
+    model.compile(optimizer=Adam(lr=lr),
+                  metrics=[continuous_dice_coef],
+                  loss={'unhealthy_output':unhealthy_loss, 
+                        'healthy_output':healthy_loss}, 
+                  loss_weights={'unhealthy_output':1,
+                                'healthy_output':0.75,})
+
+    return model
+
+
 def inception(num_channels, healthy_loss, unhealthy_loss, ds=2, lr=1e-4):
 
     # instantiate layers to share inputs
@@ -188,7 +229,7 @@ def inception(num_channels, healthy_loss, unhealthy_loss, ds=2, lr=1e-4):
                   metrics=[continuous_dice_coef],
                   loss={'unhealthy_output':unhealthy_loss, 
                         'healthy_output':healthy_loss}, 
-                  loss_weights={'unhealthy_output':0.5,
-                                'healthy_output':0.5,})
+                  loss_weights={'unhealthy_output':14/15,
+                                'healthy_output':1/15,})
 
     return model

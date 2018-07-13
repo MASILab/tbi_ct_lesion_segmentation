@@ -81,6 +81,9 @@ def parse_args(session):
                             default='bce', type=str,
                             help='Loss for the model to optimize over. Options are: \
                             bce, dice_coef, tpr, cdc, tpw_cdc, bce_tp')
+        parser.add_argument('--model', required=False, action='store', dest='model',
+                            default=None,
+                            help='If provided, picks up training from this model.')
         parser.add_argument('--experiment_details', required=False, action='store',
                             dest='experiment_details', default='experiment_details', type=str,
                             help='Description of experiment, used to create folder to save\

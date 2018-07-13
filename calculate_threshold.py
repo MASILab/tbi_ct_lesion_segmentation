@@ -180,9 +180,9 @@ if __name__ == "__main__":
     ######################## FIND BEST THRESHOLD ########################
 
     h = 0.025  # step size to check for in exhaustive search
-    init = 0.675
+    init = 0.5
     halt = 1
-    patience = 15
+    patience = 25
     cur_iter = 0
 
     best_dice_opt_for_dice = 0

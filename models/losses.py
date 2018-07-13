@@ -106,6 +106,10 @@ def true_positive_rate_loss(y_true, y_pred):
     return -true_positive_rate(y_true, y_pred)
 
 def false_positive_rate(y_true, y_pred, smooth=1):
+    '''
+    Returns a value in [0,1], where 1 is "all false positives" 
+    and 0 is "all true negatives"
+    '''
     y_true_f = K.flatten(y_true)
     y_pred_f = K.flatten(y_pred)
     inverse_y_pred_f = 1 - y_pred_f
@@ -114,7 +118,7 @@ def false_positive_rate(y_true, y_pred, smooth=1):
     false_positives = K.sum(y_pred_f) - true_positives
     true_negatives = K.sum(inverse_y_pred_f * inverse_y_true_f)
     false_negatives = K.sum(inverse_y_pred_f) - true_negatives
-    fpr = false_positives / (false_positives + true_negatives)
+    fpr = (false_positives + smooth) / (false_positives + true_negatives + smooth)
     return fpr
 
 def continuous_dice_coef(y_true, y_pred, smooth=1):
@@ -130,7 +134,7 @@ def continuous_dice_coef(y_true, y_pred, smooth=1):
     return (2. * intersection + smooth) / (continuous_union + smooth)
 
 def continuous_dice_coef_loss(y_true, y_pred):
-    return -continuous_dice_coef(y_true, y_pred)
+    return (-continuous_dice_coef(y_true, y_pred))
 
 def true_positive_continuous_dice_coef_loss(y_true, y_pred, smooth=1):
     y_true_f = K.flatten(y_true)
@@ -148,7 +152,7 @@ def true_positive_continuous_dice_coef_loss(y_true, y_pred, smooth=1):
     continuous_union = c * K.sum(y_true_f) + K.sum(y_pred_f)
     true_positive_augmented_union = continuous_union - false_positives 
 
-    return -(2. * intersection + smooth) / (true_positive_augmented_union + smooth)
+    return (1- (2. * intersection + smooth) / (true_positive_augmented_union + smooth))
 
 def false_positive_continuous_dice_coef_loss(y_true, y_pred, smooth=1):
     y_true_f = K.flatten(y_true)
@@ -164,7 +168,7 @@ def false_positive_continuous_dice_coef_loss(y_true, y_pred, smooth=1):
     continuous_union = c * K.sum(y_true_f) + K.sum(y_pred_f)
     false_positive_augmented_union = continuous_union - intersection 
 
-    return -(2. * intersection + smooth) / (false_positive_augmented_union + smooth)
+    return -(2. * intersection + smooth) / (false_positive_augmented_union + smooth) + 1
 
 
 def tpr_weighted_cdc_loss(y_true, y_pred):
@@ -178,6 +182,12 @@ def tpr_weighted_bce_loss(y_true, y_pred):
 
 def fpr_weighted_bce_loss(y_true, y_pred):
     return false_positive_rate(y_true, y_pred) + binary_crossentropy(y_true, y_pred)
+
+def tpr_weighted_dice_loss(y_true, y_pred):
+    return -true_positive_rate(y_true, y_pred) + dice_coef_loss(y_true, y_pred)
+
+def fpr_weighted_dice_loss(y_true, y_pred):
+    return false_positive_rate(y_true, y_pred) + dice_coef_loss(y_true, y_pred)
 
 
 def dice_coef(y_true, y_pred, smooth=1):
@@ -195,7 +205,7 @@ def dice_coef_no_round(y_true, y_pred, smooth=1):
     return (2. * intersection + smooth) / (union + smooth)
 
 def dice_coef_loss(y_true, y_pred):
-    return -dice_coef_no_round(y_true, y_pred)
+    return (-dice_coef_no_round(y_true, y_pred) + 1)
 
 def bce_of_true_positive(y_true, y_pred, from_logits=False, _sentinel=None, name=None):
     if not from_logits:
@@ -234,7 +244,7 @@ def dice_of_true_positive(y_true, y_pred, smooth=1):
     return (2. * intersection + smooth) / (union + smooth)
 
 def dice_of_true_positive_loss(y_true, y_pred):
-    return -dice_of_true_positive(y_true, y_pred)
+    return (-dice_of_true_positive(y_true, y_pred) + 1)
 
 def cdc_of_true_positive(y_true, y_pred, smooth=1):
     y_true_f = K.flatten(y_true)
@@ -250,7 +260,7 @@ def cdc_of_true_positive(y_true, y_pred, smooth=1):
     return (2. * intersection + smooth) / (continuous_union + smooth)
 
 def cdc_of_true_positive_loss(y_true, y_pred):
-    return -cdc_of_true_positive(y_true, y_pred)
+    return (-cdc_of_true_positive(y_true, y_pred) + 1)
 
 
 
@@ -271,4 +281,6 @@ custom_losses = {
         'bce_of_true_positive': bce_of_true_positive,
         'dice_of_true_positive_loss': dice_of_true_positive_loss,
         'cdc_of_true_positive_loss': cdc_of_true_positive_loss,
+        'tpr_weighted_dice_loss': tpr_weighted_dice_loss,
+        'fpr_weighted_dice_loss': fpr_weighted_dice_loss,
         }

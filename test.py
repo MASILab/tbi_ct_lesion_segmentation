@@ -63,8 +63,9 @@ if __name__ == "__main__":
     model = load_model(model_filename, custom_objects=custom_losses)
 
     ######################## SEGMENT FILES ########################
-    filenames = [x for x in os.listdir(final_preprocess_dir)
-                 if not os.path.isdir((os.path.join(DATA_DIR, x)))]
+    #filenames = [x for x in os.listdir(final_preprocess_dir)
+    filenames = [x for x in os.listdir(os.path.join(PREPROCESSING_DIR, "small_test"))
+                 if not os.path.isdir((os.path.join(os.path.join(PREPROCESSING_DIR, "small_test"), x)))]
 
     masks = [x for x in filenames if "mask" in x]
     filenames = [x for x in filenames if "CT" in x]
@@ -85,13 +86,18 @@ if __name__ == "__main__":
 
     for filename, mask in zip(filenames, masks):
         # load nifti file data
-        nii_obj = nib.load(os.path.join(final_preprocess_dir, filename))
+        #nii_obj = nib.load(os.path.join(final_preprocess_dir, filename))
+        nii_obj = nib.load(os.path.join(os.path.join(PREPROCESSING_DIR, "small_test"), filename))
         nii_img = nii_obj.get_data()
         header = nii_obj.header
         affine = nii_obj.affine
 
         # reshape to account for implicit "1" channel
         nii_img = np.reshape(nii_img, nii_img.shape + (1,))
+
+        # TODO: experimenting with HU range
+        blood_HU_range = range(3, 86)
+        nii_img[np.invert(np.isin(nii_img, blood_HU_range))] = 0
 
         # segment
         #segmented_img = apply_model(nii_img, model)
@@ -104,7 +110,8 @@ if __name__ == "__main__":
         nib.save(segmented_nii_obj, segmented_filename)
 
         # load mask file data
-        mask_obj = nib.load(os.path.join(final_preprocess_dir, mask))
+        #mask_obj = nib.load(os.path.join(final_preprocess_dir, mask))
+        mask_obj = nib.load(os.path.join(os.path.join(PREPROCESSING_DIR, "small_test"), mask))
         mask_img = mask_obj.get_data()
 
         # write statistics to file
@@ -120,12 +127,12 @@ if __name__ == "__main__":
         gt_vols.append(cur_vol_gt)
 
         # Reorient back to original before comparisons
-        print("Reorienting...")
-        utils.reorient(filename, DATA_DIR, SEG_DIR)
+        #print("Reorienting...")
+        #utils.reorient(filename, os.path.join(PREPROCESSING_DIR, "small_test") , SEG_DIR)
 
         # get probability volumes and threshold image
-        print("Thresholding...")
-        utils.threshold(filename, REORIENT_DIR, REORIENT_DIR, thresh)
+        #print("Thresholding...")
+        #utils.threshold(filename, REORIENT_DIR, REORIENT_DIR, thresh)
 
     mean_dice = mean_dice / len(filenames)
     pred_vols = np.array(pred_vols)

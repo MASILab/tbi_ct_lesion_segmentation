@@ -19,6 +19,7 @@ if __name__ == "__main__":
     num_epochs = 1000000
     num_patches = results.num_patches  # 508257
     batch_size = results.batch_size 
+    model = results.model
     experiment_details = results.experiment_details
     loss = results.loss
     learning_rate = 1e-4
@@ -47,19 +48,33 @@ if __name__ == "__main__":
         healthy_loss = fpr_weighted_cdc_loss
     elif loss == "tpw_cdc":
         unhealthy_loss = true_positive_continuous_dice_coef_loss 
-        healthy_loss = false_positive_continuous_dice_coef_loss 
-    elif loss == "bce_tp":
+        healthy_loss = false_positive_rate 
+    elif loss == "bce_of_tp":
         unhealthy_loss = bce_of_true_positive 
+        healthy_loss = false_positive_rate 
+    elif loss == "cdc_of_tp":
+        unhealthy_loss = cdc_of_true_positive_loss
         healthy_loss = false_positive_rate
+    elif loss == "dice_of_tp":
+        unhealthy_loss = dice_of_true_positive_loss
+        healthy_loss = false_positive_rate
+    elif loss == "tpw_bce_mix":
+        unhealthy_loss = true_positive_continuous_dice_coef_loss 
+        healthy_loss = binary_crossentropy 
     else:
         print("Invalid loss entered")
         sys.exit()
 
-    model = dual_loss_inception(num_channels=num_channels,
-                                ds=4,
-                                healthy_loss=healthy_loss,
-                                unhealthy_loss=unhealthy_loss,
-                                lr=learning_rate)
+    if not model:
+        model = dual_loss_inception(num_channels=num_channels,
+                                    ds=4,
+                                    healthy_loss=healthy_loss,
+                                    unhealthy_loss=unhealthy_loss,
+                                    lr=learning_rate)
+    else:
+        print("Continuing training with", model)
+        model = load_model(model, custom_objects=custom_losses)
+
     monitor = "val_unhealthy_output_continuous_dice_coef"
 
     #model = inception(num_channels=num_channels, ds=4, lr=learning_rate)
@@ -77,7 +92,7 @@ if __name__ == "__main__":
     checkpoint = ModelCheckpoint(checkpoint_filename,
                                  monitor='val_loss',
                                  save_best_only=True,
-                                 mode='auto',
+                                 mode='min',
                                  verbose=0,)
 
     # tensorboard
@@ -97,7 +112,7 @@ if __name__ == "__main__":
                        min_delta=1e-4,
                        patience=10,
                        verbose=1,
-                       mode='auto')
+                       mode='min')
 
     callbacks_list = [checkpoint, tb, es]
 
@@ -126,10 +141,12 @@ if __name__ == "__main__":
                                                 N4_SCRIPT_PATH)
 
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
-        atlasdir=final_preprocess_dir,
+        #atlasdir=final_preprocess_dir,
+        atlasdir=os.path.join(PREPROCESSING_DIR, "small_test"),
         patchsize=PATCH_SIZE,
         max_patch=num_patches,
-        num_channels=num_channels)
+        num_channels=num_channels,
+        linear_downscaling=False)
 
     # get healthy patches
     print("***** GETTING HEALTHY PATCHES *****")
@@ -147,11 +164,13 @@ if __name__ == "__main__":
                                                 verbose=0)
 
     ct_healthy_patches, mask_healthy_patches = patch_ops.CreatePatchesForTraining(
-        atlasdir=final_preprocess_dir,
+        #atlasdir=final_preprocess_dir,
+        atlasdir=os.path.join(HEALTHY_PREPROCESSING_DIR, "small_test"),
         patchsize=PATCH_SIZE,
         max_patch=len(ct_patches),
         num_channels=num_channels,
-        healthy=True)
+        healthy=True,
+        linear_downscaling=False)
 
     print("Individual patch dimensions:", ct_patches[0].shape)
     print("Num patches:", len(ct_patches))
@@ -164,6 +183,18 @@ if __name__ == "__main__":
 
     ct_healthy_patches = ct_healthy_patches[:len(ct_patches)]
     mask_healthy_patches = mask_healthy_patches[:len(mask_patches)]
+
+    '''
+    healthy_max = np.max(ct_healthy_patches)
+    healthy_min = np.min(ct_healthy_patches)
+    unhealthy_max = np.max(ct_patches)
+    unhealthy_min = np.min(ct_patches)
+
+    print("healthy max:", healthy_max)
+    print("healthy min:", healthy_min)
+    print("unhealthy max:", unhealthy_max)
+    print("unhealthy min:", unhealthy_min)
+    '''
 
     # train for some number of epochs
     history = model.fit({'unhealthy_input': ct_patches,

@@ -101,6 +101,7 @@ def get_center_coords(ct, mask, ratio):
                                                           lesion_coords[1],
                                                           lesion_coords[2])])
 
+
     return healthy_coords, lesion_coords
 
 
@@ -119,12 +120,19 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels, ratio):
                  1 == 100% healthy patches, 0.2 == 20% healthy patches, 80% lesion patches
     '''
 
+    fuzzy_edge = 10
+    blood_HU_range = range(-fuzzy_edge + 13, fuzzy_edge + 75 + 1)
+
     healthy_coords, lesion_coords = get_center_coords(invols[0], mask, ratio)
+
+    #print("Ratio: {}\nLength Healthy coords: {}\nMaxpatch: {}".format(ratio, len(healthy_coords), maxpatch))
 
     if ratio == 1:
         num_patches = np.minimum(maxpatch, len(healthy_coords))
     else:
         num_patches = np.minimum(maxpatch, len(lesion_coords))
+
+    #print("NUM PATCHES:", num_patches)
 
     # allocate ndarray of maxpatch size
     ct_tensor_shape = (num_patches, patchsize[0], patchsize[1], num_channels)
@@ -167,37 +175,47 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels, ratio):
 
         '''
         # visualize a patch, then exit
-        # TODO: DEBUGGING
+
+        print("\n\nDEBUG HISTOGRAMS \n\n")
         fig = plt.figure()
         a = fig.add_subplot(1,2,1)
         
         imgplot = plt.imshow(invols[0][x_1:x_2, y_1:y_2, z])
         a.set_title("CT patch")
 
+        #a = fig.add_subplot(1,2,2)
+        #maskplot = plt.imshow(mask[x_1:x_2, y_1:y_2, z])
+        #a.set_title("Mask patch")
+
+        hist, bin_edges = np.histogram(invols[0][x_1:x_2, y_1:y_2, z])
         a = fig.add_subplot(1,2,2)
-        maskplot = plt.imshow(mask[x_1:x_2, y_1:y_2, z])
-        a.set_title("Mask patch")
+        histplot = plt.hist(hist)
+        a.set_title("Intensity histogram")
 
         plt.show()
 
         cmd = input()
         if cmd == "q":
             sys.exit()
+
+
         '''
-
-
 
 
         # place patches in ndarrays
         for c in range(num_channels):
             CTPatches[i, :, :, c] = invols[c][x_1:x_2, y_1:y_2, z]
+
+        CTPatches[i,:,:,:][np.invert(np.isin(CTPatches[i,:,:,:], blood_HU_range))] = 0 
+
         MaskPatches[i, :, :, 0] = mask[x_1:x_2, y_1:y_2, z]
 
     return CTPatches, MaskPatches
 
 
 def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
-                             max_patch=150000, num_channels=1, healthy=False):
+                             max_patch=150000, num_channels=1, healthy=False,
+                             linear_downscaling=False):
     '''
     This code is identical to the main() function immediately below,
     except instead of training the model it returns a tuple containing
@@ -210,6 +228,7 @@ def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
         - healthy: bool, False if not going over the healthy dataset, true otherwise
 
     '''
+
 
     if healthy:
         # get filenames
@@ -226,8 +245,13 @@ def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
         healthy_ratio = 1
 
         total_num_patches = max_patch
+
+        print("Total number of patches:", max_patch)
+        print("Number atlases:", numatlas)
+
         single_subject_num_patches = total_num_patches // numatlas
         print("Allowed total number of patches =", total_num_patches)
+        print("Number of patches per image =", single_subject_num_patches)
 
         CT_matsize = (total_num_patches, patchsize[0], patchsize[1], num_channels)
         Mask_matsize = (total_num_patches, patchsize[0], patchsize[1], 1)
@@ -277,6 +301,10 @@ def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
             count1 = count1 + dim[0]
 
         dim = (count2, patchsize[0], patchsize[1], int(1))
+
+        if linear_downscaling:
+            CTPatches /= np.max(CTPatches)
+            CTPatches[np.where(CTPatches<0)] = 0
 
         return (CTPatches, MaskPatches)
 
@@ -366,5 +394,9 @@ def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir=None,
             count1 = count1 + dim[0]
 
         dim = (count2, patchsize[0], patchsize[1], int(1))
+
+        if linear_downscaling:
+            CTPatches /= np.max(CTPatches)
+            CTPatches[np.where(CTPatches<0)] = 0
 
         return (CTPatches, MaskPatches)
