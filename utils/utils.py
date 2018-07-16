@@ -43,14 +43,18 @@ def preprocess(filename, src_dir, preprocess_root_dir, skullstrip_script_path, n
 
     if "CT" in filename:
         skullstrip(filename, src_dir, SKULLSTRIP_DIR, skullstrip_script_path, verbose)
-        n4biascorrect(filename, SKULLSTRIP_DIR, N4_DIR, n4_script_path, verbose)
-        resample(filename, N4_DIR, RESAMPLE_DIR, verbose)
-        orient(filename, RESAMPLE_DIR, RAI_DIR, verbose)
+        #n4biascorrect(filename, SKULLSTRIP_DIR, N4_DIR, n4_script_path, verbose)
+        #resample(filename, N4_DIR, RESAMPLE_DIR, verbose)
+        #orient(filename, RESAMPLE_DIR, RAI_DIR, verbose)
+    '''
     elif "mask" in filename or "multiatlas" in filename:
-        resample(filename, src_dir, RESAMPLE_DIR, verbose)
-        orient(filename, RESAMPLE_DIR, RAI_DIR, verbose)
+        #resample(filename, src_dir, RESAMPLE_DIR, verbose)
+        #orient(filename, RESAMPLE_DIR, RAI_DIR, verbose)
+    '''
 
-    return RAI_DIR
+    final_preprocess_dir = SKULLSTRIP_DIR
+
+    return final_preprocess_dir 
 
 
 

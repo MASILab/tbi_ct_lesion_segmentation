@@ -13,6 +13,9 @@ from models.losses import *
 from models.dual_loss_inception import inception as dual_loss_inception
 from models.inception import inception
 
+os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 if __name__ == "__main__":
 
     results = utils.parse_args("train")
@@ -41,8 +44,6 @@ if __name__ == "__main__":
     PATCH_SIZE = [int(x) for x in results.patch_size.split("x")]
 
     ######### MODEL AND CALLBACKS #########
-    #model = dual_loss_inception(num_channels=num_channels, lr=learning_rate)
-    #monitor = "val_unhealthy_output_continuous_dice_coef"
 
     # determine loss
     if loss == "dice_coef":
@@ -88,17 +89,6 @@ if __name__ == "__main__":
     # tensorboard
     tb = TensorBoard(log_dir=TB_LOG_DIR)
 
-    # LR annealing
-    '''
-    reducelr = ReduceLROnPlateau(monitor='val_loss',
-                                 factor=0.5,
-                                 patience=10,
-                                 verbose=1,
-                                 mode='auto',
-                                 min_delta=2e-4,
-                                 cooldown=5)
-    '''
-
     # early stopping
     es = EarlyStopping(monitor="val_loss",
                        min_delta=1e-4,
@@ -125,73 +115,26 @@ if __name__ == "__main__":
 
     filenames.sort()
 
-    '''
     for filename in filenames:
         final_preprocess_dir = utils.preprocess(filename,
                                                 DATA_DIR,
                                                 PREPROCESSING_DIR,
                                                 SKULLSTRIP_SCRIPT_PATH,
                                                 N4_SCRIPT_PATH)
-    '''
 
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
-        #atlasdir=final_preprocess_dir,
-        atlasdir=DATA_DIR,
-        #atlasdir=os.path.join(PREPROCESSING_DIR),
+        atlasdir=final_preprocess_dir,
         patchsize=PATCH_SIZE,
         max_patch=num_patches,
         num_channels=num_channels)
 
-    """
-    # get healthy patches
-    print("***** GETTING HEALTHY PATCHES *****")
-    filenames = [x for x in os.listdir(HEALTHY_DIR)
-                 if not os.path.isdir((os.path.join(HEALTHY_DIR, x)))]
-
-    filenames.sort()
-
-    for filename in filenames:
-        final_preprocess_dir = utils.preprocess(filename,
-                                                HEALTHY_DIR,
-                                                HEALTHY_PREPROCESSING_DIR,
-                                                SKULLSTRIP_SCRIPT_PATH,
-                                                N4_SCRIPT_PATH,
-                                                verbose=0)
-
-    ct_healthy_patches, mask_healthy_patches = patch_ops.CreatePatchesForTraining(
-        atlasdir=final_preprocess_dir,
-        patchsize=PATCH_SIZE,
-        max_patch=len(ct_patches),
-        num_channels=num_channels,
-        healthy=True)
-    """
 
     print("Individual patch dimensions:", ct_patches[0].shape)
     print("Num patches:", len(ct_patches))
     print("ct_patches shape: {}\nmask_patches shape: {}".format(
         ct_patches.shape, mask_patches.shape))
 
-    """
-    print("Num healthy patches:", len(ct_healthy_patches))
-    print("ct_healthy_patches shape: {}\nmask_healthy_patches shape: {}".format(
-        ct_healthy_patches.shape, mask_healthy_patches.shape))
-
-    ct_healthy_patches = ct_healthy_patches[:len(ct_patches)]
-    mask_healthy_patches = mask_healthy_patches[:len(mask_patches)]
-    """
-
     # train for some number of epochs
-    """
-    history = model.fit({'unhealthy_input': ct_patches,
-                         'healthy_input': ct_healthy_patches},
-                        {'unhealthy_output': mask_patches,
-                         'healthy_output': mask_healthy_patches},
-                        batch_size=batch_size,
-                        epochs=num_epochs,
-                        verbose=1,
-                        validation_split=0.2,
-                        callbacks=callbacks_list,)
-    """
     
     history = parallel_model.fit(ct_patches,
                                  mask_patches,
