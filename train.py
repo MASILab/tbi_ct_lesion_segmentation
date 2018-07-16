@@ -6,6 +6,9 @@ from utils import utils, patch_ops
 
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
 from keras.models import load_model
+from keras.optimizers import Adam
+
+from models.multi_gpu import ModelMGPU
 from models.losses import *
 from models.dual_loss_inception import inception as dual_loss_inception
 from models.inception import inception
@@ -13,6 +16,8 @@ from models.inception import inception
 if __name__ == "__main__":
 
     results = utils.parse_args("train")
+
+    NUM_GPUS = 2
 
     num_channels = results.num_channels
     num_epochs = 1000000
@@ -53,14 +58,19 @@ if __name__ == "__main__":
         sys.exit()
 
     if not model:
-        model = inception(num_channels=num_channels, loss=loss, ds=4, lr=learning_rate)
+        ser_model = inception(num_channels=num_channels, loss=loss, ds=4, lr=learning_rate)
     else:
         print("Continuing training with", model)
-        model = load_model(model, custom_objects=custom_losses)
+        ser_model = load_model(model, custom_objects=custom_losses)
 
     monitor = "val_dice_coef"
 
-    print(model.summary())
+    print(ser_model.summary())
+
+    parallel_model = ModelMGPU(ser_model, NUM_GPUS)
+    parallel_model.compile(Adam(lr=learning_rate),
+                           loss=loss,
+                           metrics=[dice_coef],)
 
 
     # checkpoints
@@ -79,6 +89,7 @@ if __name__ == "__main__":
     tb = TensorBoard(log_dir=TB_LOG_DIR)
 
     # LR annealing
+    '''
     reducelr = ReduceLROnPlateau(monitor='val_loss',
                                  factor=0.5,
                                  patience=10,
@@ -86,6 +97,7 @@ if __name__ == "__main__":
                                  mode='auto',
                                  min_delta=2e-4,
                                  cooldown=5)
+    '''
 
     # early stopping
     es = EarlyStopping(monitor="val_loss",
@@ -113,16 +125,19 @@ if __name__ == "__main__":
 
     filenames.sort()
 
+    '''
     for filename in filenames:
         final_preprocess_dir = utils.preprocess(filename,
                                                 DATA_DIR,
                                                 PREPROCESSING_DIR,
                                                 SKULLSTRIP_SCRIPT_PATH,
                                                 N4_SCRIPT_PATH)
+    '''
 
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
         #atlasdir=final_preprocess_dir,
-        atlasdir=os.path.join(PREPROCESSING_DIR, "small_test"),
+        atlasdir=DATA_DIR,
+        #atlasdir=os.path.join(PREPROCESSING_DIR),
         patchsize=PATCH_SIZE,
         max_patch=num_patches,
         num_channels=num_channels)
@@ -178,10 +193,10 @@ if __name__ == "__main__":
                         callbacks=callbacks_list,)
     """
     
-    history = model.fit(ct_patches,
-                        mask_patches,
-                        batch_size=batch_size,
-                        epochs=num_epochs,
-                        verbose=1,
-                        validation_split=0.2,
-                        callbacks=callbacks_list,)
+    history = parallel_model.fit(ct_patches,
+                                 mask_patches,
+                                 batch_size=batch_size,
+                                 epochs=num_epochs,
+                                 verbose=1,
+                                 validation_split=0.2,
+                                 callbacks=callbacks_list,)
