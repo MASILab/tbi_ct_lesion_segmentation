@@ -206,7 +206,7 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels, ratio):
         for c in range(num_channels):
             CTPatches[i, :, :, c] = invols[c][x_1:x_2, y_1:y_2, z]
 
-        CTPatches[i,:,:,:][np.invert(np.isin(CTPatches[i,:,:,:], blood_HU_range))] = 0 
+        #CTPatches[i,:,:,:][np.invert(np.isin(CTPatches[i,:,:,:], blood_HU_range))] = 0 
 
         MaskPatches[i, :, :, 0] = mask[x_1:x_2, y_1:y_2, z]
 
