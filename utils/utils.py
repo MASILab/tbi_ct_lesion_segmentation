@@ -186,7 +186,6 @@ def get_dice(img1, img2):
         - dice: float, the dice score between the two files
     '''
 
-    empty_score = 1.0
 
     img_data_1 = img1.astype(np.bool)
     img_data_2 = img2.astype(np.bool)
@@ -196,13 +195,26 @@ def get_dice(img1, img2):
         print("GT shape", img_data_2.shape)
         raise ValueError("Shape mismatch between files")
 
-    img_sum = img_data_1.sum() + img_data_2.sum()
-    if img_sum == 0:
-        return empty_score
+    volume_dice = dice_metric(img_data_1.flatten(), img_data_2.flatten())
+    slices_dice = []
+    for slice_idx in range(img_data_1.shape[2]):
+        slices_dice.append(dice_metric(img_data_1[:,:,slice_idx],
+                                       img_data_2[:,:,slice_idx]))
 
-    intersection = np.logical_and(img_data_1, img_data_2)
 
-    return 2. * intersection.sum() / img_sum
+    return volume_dice, slices_dice
+
+def dice_metric(A, B):
+    '''
+    Dice calculation over two BOOLEAN numpy tensors
+    '''
+    union = A.sum() + B.sum()
+    intersection = np.logical_and(A, B).sum()
+
+    if union == 0:
+        return 1.0
+
+    return 2.0 * intersection / union
 
 
 def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
@@ -287,7 +299,7 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
     else:
         severe_pred = 0
 
-    dice = get_dice(thresh_data, thresh_data_gt)
+    volume_dice, slices_dice = get_dice(thresh_data, thresh_data_gt)
 
     # write to file the two sums
     if not os.path.exists(stats_file):
@@ -332,7 +344,7 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
 
         writer.writerow({
                         "filename": os.path.basename(filename),
-                        "dice": dice,
+                        "dice": volume_dice,
                         "thresholded volume(mm)": thresholded_vol_mm,
                         "thresholded volume ground truth(mm)": thresholded_vol_mm_gt,
                         "largest hematoma ground truth(mm)": largest_contig_hematoma_vol_mm_gt,
@@ -347,7 +359,35 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
                         "thresholded volume(voxels)": thresholded_vol,
                         })
 
-    return dice, thresholded_vol_mm, thresholded_vol_mm_gt
+    return volume_dice, slices_dice, thresholded_vol_mm, thresholded_vol_mm_gt
+
+
+def write_dice_scores(filename, volume_dice, slices_dice, results_dst):
+    if not os.path.exists(results_dst):
+        with open(results_dst, 'w') as csvfile:
+            fieldnames = [
+                "filename",
+                "volume_dice",
+                "slices_dice",
+            ]
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+    for slice_dice in slices_dice:
+        with open(results_dst, 'a') as csvfile:
+            fieldnames = [
+                "filename",
+                "volume_dice",
+                "slices_dice",
+            ]
+
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            writer.writerow({
+                "filename":os.path.basename(filename),
+                "volume_dice":volume_dice,
+                "slices_dice":slice_dice,
+                            })
 
 
 def threshold(filename, src_dir, dst_dir, threshold=0.5):

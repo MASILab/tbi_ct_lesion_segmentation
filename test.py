@@ -29,7 +29,6 @@ if __name__ == "__main__":
                                                           .find('.hdf5')]
     DATA_DIR = results.VAL_DIR
 
-
     ######################## PREPROCESS TESTING DATA ########################
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
     N4_SCRIPT_PATH = os.path.join("utils", "N4BiasFieldCorrection")
@@ -47,6 +46,7 @@ if __name__ == "__main__":
     # Stats file
     stat_filename = "result_" + experiment_details + ".csv"
     STATS_FILE = os.path.join(STATS_DIR, stat_filename)
+    DICE_METRICS_FILE = os.path.join(STATS_DIR, "detailed_dice_" + experiment_details + ".csv")
 
     ######################## PREPROCESSING ########################
     filenames = [x for x in os.listdir(DATA_DIR)
@@ -93,9 +93,11 @@ if __name__ == "__main__":
         # reshape to account for implicit "1" channel
         nii_img = np.reshape(nii_img, nii_img.shape + (1,))
 
+        '''
         # TODO: experimenting with HU range
         blood_HU_range = range(3, 86)
         nii_img[np.invert(np.isin(nii_img, blood_HU_range))] = 0
+        '''
 
         # segment
         #segmented_img = apply_model(nii_img, model)
@@ -113,19 +115,21 @@ if __name__ == "__main__":
 
         # write statistics to file
         print("Collecting stats...")
-        cur_dice, cur_vol, cur_vol_gt = utils.write_stats(filename,
-                                                          segmented_nii_obj,
-                                                          mask_obj,
-                                                          STATS_FILE,
-                                                          thresh,)
+        cur_vol_dice, cur_slices_dice, cur_vol, cur_vol_gt = utils.write_stats(filename,
+                                                                               segmented_nii_obj,
+                                                                               mask_obj,
+                                                                               STATS_FILE,
+                                                                               thresh,)
 
-        mean_dice += cur_dice
+        utils.write_dice_scores(filename, cur_vol_dice, cur_slices_dice, DICE_METRICS_FILE)
+
+        mean_dice += cur_vol_dice
         pred_vols.append(cur_vol)
         gt_vols.append(cur_vol_gt)
 
         # Reorient back to original before comparisons
         print("Reorienting...")
-        utils.reorient(filename, final_preprocess_dir , SEG_DIR)
+        utils.reorient(filename, final_preprocess_dir, SEG_DIR)
 
         # get probability volumes and threshold image
         print("Thresholding...")
@@ -134,7 +138,7 @@ if __name__ == "__main__":
     mean_dice = mean_dice / len(filenames)
     pred_vols = np.array(pred_vols)
     gt_vols = np.array(gt_vols)
-    corr = np.corrcoef(pred_vols, gt_vols)[0,1]
+    corr = np.corrcoef(pred_vols, gt_vols)[0, 1]
     print("*** Segmentation complete. ***")
     print("Mean DICE: {:.3f}".format(mean_dice))
     print("Volume Correlation:")
@@ -143,6 +147,7 @@ if __name__ == "__main__":
     # save these two numbers to file
     metrics_path = os.path.join(STATS_DIR, "metrics.txt")
     with open(metrics_path, 'w') as f:
-        f.write("Dice: {:.4f}\nVolume Correlation: {:.4f}".format(mean_dice, corr))
+        f.write("Dice: {:.4f}\nVolume Correlation: {:.4f}".format(
+            mean_dice, corr))
 
 K.clear_session()

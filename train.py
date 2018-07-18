@@ -20,12 +20,12 @@ if __name__ == "__main__":
 
     results = utils.parse_args("train")
 
-    NUM_GPUS = 2
+    NUM_GPUS = 1
 
     num_channels = results.num_channels
     num_epochs = 1000000
     num_patches = results.num_patches  # 508257
-    batch_size = results.batch_size 
+    batch_size = results.batch_size
     model = results.model
     experiment_details = results.experiment_details
     loss = results.loss
@@ -59,7 +59,8 @@ if __name__ == "__main__":
         sys.exit()
 
     if not model:
-        ser_model = inception(num_channels=num_channels, loss=loss, ds=4, lr=learning_rate)
+        ser_model = inception(num_channels=num_channels,
+                              loss=loss, ds=4, lr=learning_rate)
     else:
         print("Continuing training with", model)
         ser_model = load_model(model, custom_objects=custom_losses)
@@ -68,11 +69,11 @@ if __name__ == "__main__":
 
     print(ser_model.summary())
 
-    parallel_model = ModelMGPU(ser_model, NUM_GPUS)
-    parallel_model.compile(Adam(lr=learning_rate),
-                           loss=loss,
-                           metrics=[dice_coef],)
-
+    if NUM_GPUS > 1:
+        parallel_model = ModelMGPU(ser_model, NUM_GPUS)
+        parallel_model.compile(Adam(lr=learning_rate),
+                               loss=loss,
+                               metrics=[dice_coef],)
 
     # checkpoints
     checkpoint_filename = str(utils.now()) +\
@@ -128,18 +129,26 @@ if __name__ == "__main__":
         max_patch=num_patches,
         num_channels=num_channels)
 
-
     print("Individual patch dimensions:", ct_patches[0].shape)
     print("Num patches:", len(ct_patches))
     print("ct_patches shape: {}\nmask_patches shape: {}".format(
         ct_patches.shape, mask_patches.shape))
 
     # train for some number of epochs
-    
-    history = parallel_model.fit(ct_patches,
-                                 mask_patches,
-                                 batch_size=batch_size,
-                                 epochs=num_epochs,
-                                 verbose=1,
-                                 validation_split=0.2,
-                                 callbacks=callbacks_list,)
+
+    if NUM_GPUS > 1:
+        history = parallel_model.fit(ct_patches,
+                                     mask_patches,
+                                     batch_size=batch_size,
+                                     epochs=num_epochs,
+                                     verbose=1,
+                                     validation_split=0.2,
+                                     callbacks=callbacks_list,)
+    else:
+        history = ser_model.fit(ct_patches,
+                                mask_patches,
+                                batch_size=batch_size,
+                                epochs=num_epochs,
+                                verbose=1,
+                                validation_split=0.2,
+                                callbacks=callbacks_list,)
