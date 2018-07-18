@@ -12,6 +12,7 @@ import os
 import numpy as np
 import nibabel as nib
 from utils import utils
+from utils.save_figures import *
 from utils.apply_model import apply_model, apply_model_single_input
 from keras.models import load_model
 from keras import backend as K
@@ -36,17 +37,19 @@ if __name__ == "__main__":
     PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessing")
     SEG_ROOT_DIR = os.path.join(DATA_DIR, "segmentations")
     STATS_DIR = os.path.join("results", experiment_name)
+    FIGURES_DIR = os.path.join("results", experiment_name, "figures")
     SEG_DIR = os.path.join(SEG_ROOT_DIR, experiment_name)
     REORIENT_DIR = os.path.join(SEG_DIR, "reoriented")
 
-    for d in [PREPROCESSING_DIR, SEG_ROOT_DIR, STATS_DIR, SEG_DIR, REORIENT_DIR]:
+    for d in [PREPROCESSING_DIR, SEG_ROOT_DIR, STATS_DIR, SEG_DIR, REORIENT_DIR, FIGURES_DIR]:
         if not os.path.exists(d):
             os.makedirs(d)
 
     # Stats file
     stat_filename = "result_" + experiment_details + ".csv"
     STATS_FILE = os.path.join(STATS_DIR, stat_filename)
-    DICE_METRICS_FILE = os.path.join(STATS_DIR, "detailed_dice_" + experiment_details + ".csv")
+    DICE_METRICS_FILE = os.path.join(
+        STATS_DIR, "detailed_dice_" + experiment_details + ".csv")
 
     ######################## PREPROCESSING ########################
     filenames = [x for x in os.listdir(DATA_DIR)
@@ -121,7 +124,15 @@ if __name__ == "__main__":
                                                                                STATS_FILE,
                                                                                thresh,)
 
-        utils.write_dice_scores(filename, cur_vol_dice, cur_slices_dice, DICE_METRICS_FILE)
+        save_slice(filename,
+                   nii_img[:, :, :, 0],
+                   segmented_img,
+                   mask_img,
+                   cur_slices_dice,
+                   FIGURES_DIR)
+
+        utils.write_dice_scores(filename, cur_vol_dice,
+                                cur_slices_dice, DICE_METRICS_FILE)
 
         mean_dice += cur_vol_dice
         pred_vols.append(cur_vol)
