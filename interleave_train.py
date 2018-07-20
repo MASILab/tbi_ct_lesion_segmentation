@@ -70,32 +70,6 @@ if __name__ == "__main__":
         sys.exit()
 
 
-    monitor = "val_dice_coef"
-
-    # checkpoints
-    checkpoint_filename = str(utils.now()) + "_" +\
-        monitor+"_{"+monitor+":.4f}_weights.hdf5"
-
-    checkpoint_filename = os.path.join(WEIGHT_DIR, checkpoint_filename)
-    checkpoint = ModelCheckpoint(checkpoint_filename,
-                                 monitor='val_loss',
-                                 save_best_only=False,
-                                 mode='auto',
-                                 verbose=0,)
-
-    # tensorboard
-    tb = TensorBoard(log_dir=TB_LOG_DIR)
-
-    '''
-    # early stopping
-    es = EarlyStopping(monitor="val_loss",
-                       min_delta=1e-4,
-                       patience=10,
-                       verbose=1,
-                       mode='auto')
-    '''
-
-    callbacks_list = [checkpoint, tb]
 
     ######### PREPROCESS TRAINING DATA #########
     DATA_DIR = os.path.join("data", "train")
@@ -193,6 +167,35 @@ if __name__ == "__main__":
             else:
                 model = ser_model
 
+    
+            ########## CALLBACKS ##########
+            # checkpoints
+            monitor = "val_dice_coef"
+            checkpoint_filename = str(utils.now()) + "_" +\
+                monitor+"_{"+monitor+":.4f}_weights.hdf5"
+
+            checkpoint_filename = os.path.join(WEIGHT_DIR, checkpoint_filename)
+            checkpoint = ModelCheckpoint(checkpoint_filename,
+                                         monitor='val_loss',
+                                         save_best_only=False,
+                                         mode='auto',
+                                         verbose=0,)
+
+            # tensorboard
+            tb = TensorBoard(log_dir=TB_LOG_DIR)
+
+            '''
+            # early stopping
+            es = EarlyStopping(monitor="val_loss",
+                               min_delta=1e-4,
+                               patience=10,
+                               verbose=1,
+                               mode='auto')
+            '''
+
+            callbacks_list = [checkpoint, tb]
+
+            ########## FIT MODEL ##########
             history = model.fit(ct_patches[:100],
                                 mask_patches[:100],
                                 batch_size=batch_size,
