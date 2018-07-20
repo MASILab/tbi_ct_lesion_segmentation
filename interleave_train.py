@@ -154,7 +154,7 @@ if __name__ == "__main__":
                 THIS_COMPUTER)-1]
             cur_patience = 0  # start with cur_patience of 0
             best_loss = 1e5  # some arbitrary large number
-            cur_epoch = 1
+            cur_epoch = 0
 
         # get current position in round robin
         cur_pos = ROUND_ROBIN_ORDER.index(most_recent)
@@ -209,6 +209,7 @@ if __name__ == "__main__":
                 cur_patience = 0
             elif np.abs(cur_los - best_loss) > min_delta:
                 cur_patience += 1
+            cur_epoch += 1
 
             # write updates
             logger.write_log(LOGFILE,
