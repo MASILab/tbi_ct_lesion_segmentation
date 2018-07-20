@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+import time
 
 from utils import utils, patch_ops, logger
 
@@ -73,7 +74,6 @@ if __name__ == "__main__":
 
     # checkpoints
     checkpoint_filename = str(utils.now()) +\
-        "_epoch_{epoch:04d}_" +\
         monitor+"_{"+monitor+":.4f}_weights.hdf5"
 
     checkpoint_filename = os.path.join(WEIGHT_DIR, checkpoint_filename)
@@ -148,11 +148,13 @@ if __name__ == "__main__":
             most_recent = logfile_data[-1][1]
             cur_patience = logfile_data[-1][4]
             best_loss = logfile_data[-1][5]
+            cur_epoch = logfile_data[-1][6]
         else:
             most_recent = ROUND_ROBIN_ORDER[ROUND_ROBIN_ORDER.index(
                 THIS_COMPUTER)-1]
             cur_patience = 0  # start with cur_patience of 0
             best_loss = 1e5  # some arbitrary large number
+            cur_epoch = 1
 
         # get current position in round robin
         cur_pos = ROUND_ROBIN_ORDER.index(most_recent)
@@ -191,8 +193,8 @@ if __name__ == "__main__":
             else:
                 model = ser_model
 
-            history = model.fit(ct_patches,
-                                mask_patches,
+            history = model.fit(ct_patches[:10],
+                                mask_patches[:10],
                                 batch_size=batch_size,
                                 epochs=1,
                                 verbose=1,
@@ -214,7 +216,8 @@ if __name__ == "__main__":
                              history.history['val_dice_coef'][-1],
                              cur_loss,
                              cur_patience,
-                             best_loss)
+                             best_loss,
+                             cur_epoch)
 
             if cur_patience >= patience:
                 print("Training complete.")
