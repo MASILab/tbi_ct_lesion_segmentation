@@ -204,7 +204,7 @@ if __name__ == "__main__":
             # write updates
             logger.write_log(LOGFILE,
                              THIS_COMPUTER,
-                             history.history['val_dice_coef'][-1]
+                             history.history['val_dice_coef'][-1],
                              cur_loss,
                              cur_patience,
                              best_loss)
