@@ -16,7 +16,7 @@ def write_log(log_file, host_id, val_dice, cur_loss, cur_patience, best_loss):
     if update_log_file:
         with open(log_file, 'a') as f:
             if new_log_file:
-                f.write("{:<30}\t{:<10}\t{:<10}\t{:<10}\t{<:10}\n".format(
+                f.write("{:<30}\t{:<10}\t{:<10}\t{:<10}\t{<:10}\t{<:10}\n".format(
                     "timestamp",
                     "host_id",
                     "val_dice",
@@ -24,7 +24,7 @@ def write_log(log_file, host_id, val_dice, cur_loss, cur_patience, best_loss):
                     "cur_patience",
                     "best_loss",
                     ))
-            f.write("{:<30}\t{:<10}\t{:<10.4f}\t{:<10.4f}\t{<:10.4f}\n".format(
+            f.write("{:<30}\t{:<10}\t{:<10.4f}\t{:<10.4f}\t{<:10.4f}\t{<:10.4f}\n".format(
                 now(),
                 host_id,
                 val_dice,
