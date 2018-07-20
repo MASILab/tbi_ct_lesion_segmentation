@@ -32,9 +32,11 @@ if __name__ == "__main__":
     learning_rate = 1e-4
 
     MOUNT_POINT = os.path.join("..", "nihvandy", "ct_seg")
+    LOGFILE = os.path.join(MOUNT_POINT, "multisite_training_log.txt")
     WEIGHT_DIR = os.path.join(
         MOUNT_POINT, "interleaved_weights", experiment_details)
     TB_LOG_DIR = os.path.join(MOUNT_POINT, "tensorboard", utils.now())
+    THIS_COMPUTER = open("host_id.cfg").read().split()[0]
 
     # files and paths
     TRAIN_DIR = results.SRC_DIR
@@ -134,6 +136,7 @@ if __name__ == "__main__":
                                                 PREPROCESSING_DIR,
                                                 SKULLSTRIP_SCRIPT_PATH,
                                                 N4_SCRIPT_PATH)
+
 
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
         atlasdir=final_preprocess_dir,
