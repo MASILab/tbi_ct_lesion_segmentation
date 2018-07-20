@@ -73,7 +73,7 @@ if __name__ == "__main__":
     monitor = "val_dice_coef"
 
     # checkpoints
-    checkpoint_filename = str(utils.now()) +\
+    checkpoint_filename = str(utils.now()) + "_" +\
         monitor+"_{"+monitor+":.4f}_weights.hdf5"
 
     checkpoint_filename = os.path.join(WEIGHT_DIR, checkpoint_filename)
