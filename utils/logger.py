@@ -7,7 +7,7 @@ def write_log(log_file, host_id, val_dice, cur_loss, cur_patience, best_loss):
     with open(log_file, 'r') as f:
         logfile_data = [x.split() for x in f.readlines()]
 
-        if (len(logfile_data)) >= 1 and logfile_data[-1][1] != host_id)
+        if (len(logfile_data) >= 1 and logfile_data[-1][1] != host_id)\
                 or len(logfile_data) == 0:
             update_log_file=True
         if len(logfile_data) == 0:
