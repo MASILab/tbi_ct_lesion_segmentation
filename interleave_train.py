@@ -224,6 +224,6 @@ if __name__ == "__main__":
                 print("Training complete.")
                 sys.exit(0)
 
-            # else pass training to the next site
-            # sleep 120 seconds; epochs will take between 4 and 22 minutes
-            time.sleep(120)
+        # else pass training to the next site
+        # sleep 120 seconds; epochs will take between 4 and 22 minutes
+        time.sleep(120)
