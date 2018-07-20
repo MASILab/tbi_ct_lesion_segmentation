@@ -146,9 +146,9 @@ if __name__ == "__main__":
         # if this is the first computer, then it's this computer's turn
         if len(logfile_data) > 1:
             most_recent = logfile_data[-1][1]
-            cur_patience = logfile_data[-1][4]
-            best_loss = logfile_data[-1][5]
-            cur_epoch = logfile_data[-1][6]
+            cur_patience = int(logfile_data[-1][4])
+            best_loss = int(logfile_data[-1][5])
+            cur_epoch = int(logfile_data[-1][6])
         else:
             most_recent = ROUND_ROBIN_ORDER[ROUND_ROBIN_ORDER.index(
                 THIS_COMPUTER)-1]
