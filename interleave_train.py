@@ -68,24 +68,8 @@ if __name__ == "__main__":
         print("\nInvalid loss function.\n")
         sys.exit()
 
-    existing_weights = os.listdir(WEIGHT_DIR)
-    existing_weights.sort()
-    if len(existing_weights) == 0:
-        ser_model = inception(num_channels=num_channels,
-                              loss=loss, ds=4, lr=learning_rate)
-        print(ser_model.summary())
-    else:
-        prev_weights = os.path.join(WEIGHT_DIR, existing_weights[-1])
-        print("Continuing training with", prev_weights)
-        ser_model = load_model(prev_weights, custom_objects=custom_losses)
 
     monitor = "val_dice_coef"
-
-    if NUM_GPUS > 1:
-        parallel_model = ModelMGPU(ser_model, NUM_GPUS)
-        parallel_model.compile(Adam(lr=learning_rate),
-                               loss=loss,
-                               metrics=[dice_coef],)
 
     # checkpoints
     checkpoint_filename = str(utils.now()) +\
@@ -151,10 +135,6 @@ if __name__ == "__main__":
 
     # train for some number of epochs
 
-    if NUM_GPUS > 1:
-        model = parallel_model
-    else:
-        model = ser_model
 
     # Manual early stopping
     min_delta = 1e-4
@@ -187,6 +167,30 @@ if __name__ == "__main__":
             cur_pos+1) % len(ROUND_ROBIN_ORDER)] == THIS_COMPUTER
 
         if cur_host_turn:
+
+            existing_weights = os.listdir(WEIGHT_DIR)
+            existing_weights.sort()
+
+            if len(existing_weights) == 0:
+                ser_model = inception(num_channels=num_channels,
+                                      loss=loss, ds=4, lr=learning_rate)
+                print(ser_model.summary())
+            else:
+                prev_weights = os.path.join(WEIGHT_DIR, existing_weights[-1])
+                print("Continuing training with", prev_weights)
+                ser_model = load_model(prev_weights, custom_objects=custom_losses)
+
+
+            if NUM_GPUS > 1:
+                parallel_model = ModelMGPU(ser_model, NUM_GPUS)
+                parallel_model.compile(Adam(lr=learning_rate),
+                                       loss=loss,
+                                       metrics=[dice_coef],)
+                model = parallel_model
+
+            else:
+                model = ser_model
+
             history = model.fit(ct_patches,
                                 mask_patches,
                                 batch_size=batch_size,
