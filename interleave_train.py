@@ -193,8 +193,8 @@ if __name__ == "__main__":
             else:
                 model = ser_model
 
-            history = model.fit(ct_patches[:10],
-                                mask_patches[:10],
+            history = model.fit(ct_patches[:100],
+                                mask_patches[:100],
                                 batch_size=batch_size,
                                 epochs=1,
                                 verbose=1,
@@ -207,7 +207,7 @@ if __name__ == "__main__":
             if cur_loss < best_loss:
                 best_loss = cur_loss
                 cur_patience = 0
-            elif np.abs(cur_los - best_loss) > min_delta:
+            elif np.abs(cur_loss - best_loss) > min_delta:
                 cur_patience += 1
             cur_epoch += 1
 
