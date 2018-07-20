@@ -17,6 +17,8 @@ from keras.models import load_model
 from keras import backend as K
 from models.losses import *
 
+os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
+
 if __name__ == "__main__":
 
     ######################## COMMAND LINE ARGUMENTS ########################
