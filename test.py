@@ -152,8 +152,7 @@ if __name__ == "__main__":
     corr = np.corrcoef(pred_vols, gt_vols)[0, 1]
     print("*** Segmentation complete. ***")
     print("Mean DICE: {:.3f}".format(mean_dice))
-    print("Volume Correlation:")
-    print(corr)
+    print("Volume Correlation: {:.3f}".format(corr))
 
     # save these two numbers to file
     metrics_path = os.path.join(STATS_DIR, "metrics.txt")

@@ -8,7 +8,7 @@ from .reorient import orient, reorient
 import os
 import argparse
 import numpy as np
-import nibabel as nib 
+import nibabel as nib
 from sklearn.utils import shuffle
 from skimage import measure
 from subprocess import Popen, PIPE
@@ -19,7 +19,7 @@ import csv
 
 
 def preprocess(filename, src_dir, preprocess_root_dir, skullstrip_script_path, n4_script_path,
-        verbose=0):
+               verbose=0):
     '''
     Preprocesses an image:
     1. skullstrip
@@ -42,21 +42,20 @@ def preprocess(filename, src_dir, preprocess_root_dir, skullstrip_script_path, n
             os.makedirs(d)
 
     if "CT" in filename:
-        skullstrip(filename, src_dir, SKULLSTRIP_DIR, skullstrip_script_path, verbose)
+        skullstrip(filename, src_dir, SKULLSTRIP_DIR,
+                   skullstrip_script_path, verbose)
         #n4biascorrect(filename, SKULLSTRIP_DIR, N4_DIR, n4_script_path, verbose)
         #resample(filename, N4_DIR, RESAMPLE_DIR, verbose)
-        #orient(filename, RESAMPLE_DIR, RAI_DIR, verbose)
+        #orient(filename, SKULLSTRIP_DIR, RAI_DIR, verbose)
     '''
     elif "mask" in filename or "multiatlas" in filename:
         #resample(filename, src_dir, RESAMPLE_DIR, verbose)
-        #orient(filename, RESAMPLE_DIR, RAI_DIR, verbose)
+        #orient(filename, SKULLSTRIP_DIR, RAI_DIR, verbose)
     '''
 
     final_preprocess_dir = SKULLSTRIP_DIR
 
-    return final_preprocess_dir 
-
-
+    return final_preprocess_dir
 
 
 def parse_args(session):
@@ -118,7 +117,7 @@ def parse_args(session):
         sys.exit()
 
     parser.add_argument('--num_channels', required=False, type=int, action='store',
-                        dest='num_channels', default=1, 
+                        dest='num_channels', default=1,
                         help='Number of channels to include. First is CT, second is atlas,\
                                 third is unskullstripped CT')
 
@@ -186,7 +185,6 @@ def get_dice(img1, img2):
         - dice: float, the dice score between the two files
     '''
 
-
     img_data_1 = img1.astype(np.bool)
     img_data_2 = img2.astype(np.bool)
 
@@ -198,11 +196,11 @@ def get_dice(img1, img2):
     volume_dice = dice_metric(img_data_1.flatten(), img_data_2.flatten())
     slices_dice = []
     for slice_idx in range(img_data_1.shape[2]):
-        slices_dice.append(dice_metric(img_data_1[:,:,slice_idx],
-                                       img_data_2[:,:,slice_idx]))
-
+        slices_dice.append(dice_metric(img_data_1[:, :, slice_idx],
+                                       img_data_2[:, :, slice_idx]))
 
     return volume_dice, slices_dice
+
 
 def dice_metric(A, B):
     '''
@@ -368,26 +366,29 @@ def write_dice_scores(filename, volume_dice, slices_dice, results_dst):
             fieldnames = [
                 "filename",
                 "volume_dice",
+                "slice_idx",
                 "slices_dice",
             ]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
 
-    for slice_dice in slices_dice:
+    for idx, slice_dice in enumerate(slices_dice):
         with open(results_dst, 'a') as csvfile:
             fieldnames = [
                 "filename",
                 "volume_dice",
+                "slice_idx",
                 "slices_dice",
             ]
 
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
             writer.writerow({
-                "filename":os.path.basename(filename),
-                "volume_dice":volume_dice,
-                "slices_dice":slice_dice,
-                            })
+                "filename": os.path.basename(filename),
+                "volume_dice": volume_dice,
+                "slice_idx": idx,
+                "slices_dice": slice_dice,
+            })
 
 
 def threshold(filename, src_dir, dst_dir, threshold=0.5):
@@ -413,4 +414,3 @@ def threshold(filename, src_dir, dst_dir, threshold=0.5):
         img_data, affine=nii_obj.affine, header=nii_obj.header)
     nib.save(thresh_obj, os.path.join(
         dst_dir, get_root_filename(seg_filename)+"_thresh.nii.gz"))
-
