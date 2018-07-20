@@ -134,10 +134,12 @@ if __name__ == "__main__":
         cur_pos = ROUND_ROBIN_ORDER.index(most_recent)
 
         # debug print statements
+        '''
         print("Order:", ROUND_ROBIN_ORDER)
         print("cur_pos:", cur_pos)
         print("thiscomp:", THIS_COMPUTER)
         print("calc:", ROUND_ROBIN_ORDER[(cur_pos+1) % len(ROUND_ROBIN_ORDER)])
+        '''
 
         cur_host_turn = ROUND_ROBIN_ORDER[(
             cur_pos+1) % len(ROUND_ROBIN_ORDER)] == THIS_COMPUTER
@@ -196,8 +198,8 @@ if __name__ == "__main__":
             callbacks_list = [checkpoint, tb]
 
             ########## FIT MODEL ##########
-            history = model.fit(ct_patches[:100],
-                                mask_patches[:100],
+            history = model.fit(ct_patches,
+                                mask_patches,
                                 batch_size=batch_size,
                                 epochs=1,
                                 verbose=1,
@@ -229,4 +231,5 @@ if __name__ == "__main__":
 
         # else pass training to the next site
         # sleep 120 seconds; epochs will take between 4 and 22 minutes
-        time.sleep(10)
+        print("Waiting for turn...")
+        time.sleep(120)
