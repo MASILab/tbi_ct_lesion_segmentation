@@ -31,14 +31,15 @@ def save_slice(filename, ct_img_data, pred_mask_img_data, gt_mask_img_data, slic
         worst_im = Image.fromarray(worst_slice).convert('LA')
 
         if img_data is ct_img_data:
-            best_slice_filename = remove_ext(filename) + "_best_slice_" + str(best_slice_idx) + "_orig.png"
-            worst_slice_filename = remove_ext(filename) + "_worst_slice_" + str(worst_slice_idx) + "_orig.png"
+            best_slice_filename = remove_ext(filename) + "_best_slice_" + str(best_slice_idx).zfill(2) + "_orig.png"
+            worst_slice_filename = remove_ext(filename) + "_worst_slice_" + str(worst_slice_idx).zfill(2) + "_orig.png"
         elif img_data is pred_mask_img_data:
-            best_slice_filename = remove_ext(filename) + "_best_slice_" + str(best_slice_idx) + "_pred.png"
-            worst_slice_filename = remove_ext(filename) + "_worst_slice_" + str(worst_slice_idx) + "_pred.png"
+            best_slice_filename = remove_ext(filename) + "_best_slice_" + str(best_slice_idx).zfill(2) + "_pred.png"
+            worst_slice_filename = remove_ext(filename) + "_worst_slice_" + str(worst_slice_idx).zfill(2) + "_pred.png"
         elif img_data is gt_mask_img_data:
-            best_slice_filename = remove_ext(filename) + "_best_slice_" + str(best_slice_idx) + "_gt.png"
-            worst_slice_filename = remove_ext(filename) + "_worst_slice_" + str(worst_slice_idx) + "_gt.png"
+            best_slice_filename = remove_ext(filename) + "_best_slice_" + str(best_slice_idx).zfill(2) + "_gt.png"
+            worst_slice_filename = remove_ext(filename) + "_worst_slice_" + str(worst_slice_idx).zfill(2) + "_gt.png"
 
         best_im.save(os.path.join(result_dst, best_slice_filename))
         worst_im.save(os.path.join(result_dst, worst_slice_filename))
+

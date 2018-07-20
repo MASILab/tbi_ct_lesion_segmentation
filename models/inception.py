@@ -32,8 +32,11 @@ def inception(num_channels, loss=binary_crossentropy, ds=2,lr=1e-4):
 
     inputs = Input((None, None, num_channels))
 
-    x = Conv2D(64//ds, (3,3), strides=(1,1), activation='relu', padding='same')(inputs)
-    x = Conv2D(64//ds, (3,3), strides=(1,1), activation='relu', padding='same')(x)
+    x = Conv2D(64//ds, (9,9), strides=(1,1), activation='relu', padding='same')(inputs)
+    x = Conv2D(64//ds, (7,7), strides=(1,1), activation='relu', padding='same')(x)
+
+    #x = Conv2D(64//ds, (3,3), strides=(1,1), activation='relu', padding='same')(inputs)
+    #x = Conv2D(64//ds, (3,3), strides=(1,1), activation='relu', padding='same')(x)
 
     x = get_inception_layer(x, ds)
     x = get_inception_layer(x, ds)
