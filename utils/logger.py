@@ -25,7 +25,7 @@ def write_log(log_file, host_id, val_dice, cur_loss, cur_patience, best_loss, cu
                     "best_loss",
                     "cur_epoch",
                     ))
-            f.write("{:<30}\t{:<10}\t{:<10.4f}\t{:<10.4f}\t{:<10.4f}\t{:<10.4f}\t{:<10.4f}\n".format(
+            f.write("{:<30}\t{:<10}\t{:<10.4f}\t{:<10.4f}\t{:<10}\t{:<10.4f}\t{:<10}\n".format(
                 now(),
                 host_id,
                 val_dice,

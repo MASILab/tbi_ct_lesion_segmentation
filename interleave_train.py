@@ -147,7 +147,7 @@ if __name__ == "__main__":
         if len(logfile_data) > 1:
             most_recent = logfile_data[-1][1]
             cur_patience = int(logfile_data[-1][4])
-            best_loss = int(logfile_data[-1][5])
+            best_loss = float(logfile_data[-1][5])
             cur_epoch = int(logfile_data[-1][6])
         else:
             most_recent = ROUND_ROBIN_ORDER[ROUND_ROBIN_ORDER.index(
