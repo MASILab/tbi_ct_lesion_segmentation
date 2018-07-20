@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     results = utils.parse_args("train")
 
-    NUM_GPUS = 1
+    NUM_GPUS = 2
 
     num_channels = results.num_channels
     num_epochs = 1000000
@@ -191,8 +191,8 @@ if __name__ == "__main__":
             else:
                 model = ser_model
 
-            history = model.fit(ct_patches,
-                                mask_patches,
+            history = model.fit(ct_patches[:10],
+                                mask_patches[:10],
                                 batch_size=batch_size,
                                 epochs=1,
                                 verbose=1,
