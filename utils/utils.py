@@ -12,6 +12,7 @@ import numpy as np
 import nibabel as nib
 from sklearn.utils import shuffle
 from skimage import measure
+from skimage import morphology
 from subprocess import Popen, PIPE
 from tqdm import tqdm
 import random
@@ -297,6 +298,13 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
     else:
         largest_contig_hematoma_vol_mm = 0
 
+    # remove small lesions
+    smallest_lesion_size = 27 
+    thresh_data = morphology.remove_small_objects(label, smallest_lesion_size)
+    # turn results back into binary values
+    thresh_data[np.where(thresh_data < threshold)] = 0
+    thresh_data[np.where(thresh_data >= threshold)] = 1
+
     ############## record results ############
 
     if largest_contig_hematoma_vol_mm > SEVERE_HEMATOMA:
@@ -417,7 +425,17 @@ def threshold(filename, src_dir, dst_dir, threshold=0.5):
     # threshold image and save thresholded image
     img_data[np.where(img_data < threshold)] = 0
     img_data[np.where(img_data >= threshold)] = 1
+
+    # remove small segmentation areas
+    label = measure.label(img_data)
+    smallest_lesion_size = 27 
+    img_data = morphology.remove_small_objects(label, smallest_lesion_size)
+    # turn results back into binary values
+    img_data[np.where(img_data < threshold)] = 0
+    img_data[np.where(img_data >= threshold)] = 1
+
     thresh_obj = nib.Nifti1Image(
         img_data, affine=nii_obj.affine, header=nii_obj.header)
     nib.save(thresh_obj, os.path.join(
         dst_dir, get_root_filename(seg_filename)+"_thresh.nii.gz"))
+
