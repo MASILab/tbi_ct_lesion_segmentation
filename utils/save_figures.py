@@ -55,10 +55,10 @@ def save_slice(filename, ct_img_data, pred_mask_img_data, gt_mask_img_data, slic
             cur_im = Image.fromarray(cur_slice).convert('LA')
 
             if img_data is ct_img_data:
-                cur_slice_filename = remove_ext(filename) + "_specified_slice_" + str(cur_slice_idx).zfill(2) + "_orig.png"
+                cur_slice_filename = remove_ext(filename) + "_specified_slice_" + str(specified_idx).zfill(2) + "_orig.png"
             elif img_data is pred_mask_img_data:
-                cur_slice_filename = remove_ext(filename) + "_specified_slice_" + str(cur_slice_idx).zfill(2) + "_pred.png"
+                cur_slice_filename = remove_ext(filename) + "_specified_slice_" + str(specified_idx).zfill(2) + "_pred.png"
             elif img_data is gt_mask_img_data:
-                cur_slice_filename = remove_ext(filename) + "_specified_slice_" + str(cur_slice_idx).zfill(2) + "_gt.png"
+                cur_slice_filename = remove_ext(filename) + "_specified_slice_" + str(specified_idx).zfill(2) + "_gt.png"
 
             cur_im.save(os.path.join(result_dst, cur_slice_filename))
