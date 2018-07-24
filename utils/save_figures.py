@@ -5,6 +5,23 @@ import sys
 from PIL import Image
 from .utils import remove_ext
 
+def scale_ct_for_png(img_data):
+    ''' 
+    new_img_data = img_data + 1024
+    new_img_data[np.where(new_img_data < 0)] = 0
+    new_img_data = np.divide(new_img_data, 2000)
+    new_img_data *= 255
+    new_img_data[np.where(new_img_data > 255)] = 255
+    new_img_data = new_img_data.astype(np.uint8).T
+    ''' 
+    new_img_data = img_data
+    new_img_data[np.where(new_img_data < 0)] = 0
+    new_img_data = np.divide(new_img_data, np.max(new_img_data))
+    new_img_data *= 255
+    new_img_data = new_img_data.astype(np.uint8).T
+    
+    return new_img_data
+
 # TODO: handle saving binary images
 def save_slice(filename, ct_img_data, pred_mask_img_data, gt_mask_img_data, slices_dice, result_dst):
     # also ensure to get screencaps of these specific slices
@@ -23,13 +40,11 @@ def save_slice(filename, ct_img_data, pred_mask_img_data, gt_mask_img_data, slic
 
     for img_data in [ct_img_data, pred_mask_img_data, gt_mask_img_data]:
         best_slice = img_data[:,:,best_slice_idx]
-        best_slice = best_slice / np.max(best_slice) * 255
-        best_slice = best_slice.astype(np.uint8).T
+        best_slice = scale_ct_for_png(best_slice)
         best_im = Image.fromarray(best_slice).convert('LA')
 
         worst_slice = img_data[:,:,worst_slice_idx]
-        worst_slice = worst_slice / np.max(worst_slice) * 255
-        worst_slice = worst_slice.astype(np.uint8).T
+        worst_slice = scale_ct_for_png(worst_slice)
         worst_im = Image.fromarray(worst_slice).convert('LA')
 
         if img_data is ct_img_data:
@@ -50,8 +65,7 @@ def save_slice(filename, ct_img_data, pred_mask_img_data, gt_mask_img_data, slic
             if specified_idx in [best_slice_idx, worst_slice_idx]:
                 continue
             cur_slice = img_data[:,:,specified_idx]
-            cur_slice = cur_slice / np.max(cur_slice) * 255
-            cur_slice = cur_slice.astype(np.uint8).T
+            cur_slice = scale_ct_for_png(cur_slice)
             cur_im = Image.fromarray(cur_slice).convert('LA')
 
             if img_data is ct_img_data:
