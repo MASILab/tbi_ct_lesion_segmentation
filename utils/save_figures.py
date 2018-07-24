@@ -8,7 +8,7 @@ from .utils import remove_ext
 # TODO: handle saving binary images
 def save_slice(filename, ct_img_data, pred_mask_img_data, gt_mask_img_data, slices_dice, result_dst):
     # also ensure to get screencaps of these specific slices
-    specified_slices = [10, 12, 14]
+    specified_slices = [10, 12, 13, 14, 22]
 
     best_dice = 0
     worst_dice = 1
