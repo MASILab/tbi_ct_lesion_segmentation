@@ -4,6 +4,8 @@ models/weights/
 models/tensorboard
 results/
 
+**/results/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
