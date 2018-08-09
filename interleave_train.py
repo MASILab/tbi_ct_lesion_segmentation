@@ -34,10 +34,14 @@ if __name__ == "__main__":
 
     MOUNT_POINT = os.path.join("..", "nihvandy", "ct_seg")
     LOGFILE = os.path.join(MOUNT_POINT, "multisite_training_log.txt")
-    WEIGHT_DIR = os.path.join(
-        MOUNT_POINT, "interleaved_weights", experiment_details)
+    WEIGHT_DIR = os.path.join(MOUNT_POINT,
+                              "interleaved_weights",
+                              experiment_details)
     TB_LOG_DIR = os.path.join(MOUNT_POINT, "tensorboard", utils.now())
     THIS_COMPUTER = open("host_id.cfg").read().split()[0]
+
+    MODEL_NAME = "inception_model_" + experiment_details
+    MODEL_PATH = os.path.join(WEIGHT_DIR, MODEL_NAME + ".json")
 
     # files and paths
     TRAIN_DIR = results.SRC_DIR
@@ -49,8 +53,9 @@ if __name__ == "__main__":
     PATCH_SIZE = [int(x) for x in results.patch_size.split("x")]
 
     # multi site ordering
-    ROUND_ROBIN_ORDER = open(os.path.join(MOUNT_POINT, "round_robin.cfg"))\
-        .read().split()
+    ROUND_ROBIN_ORDER = open(os.path.join(MOUNT_POINT, "round_robin.cfg"))
+        .read()
+        .split()
     if not os.path.exists(LOGFILE):
         os.system("touch" + " " + LOGFILE)
 
@@ -68,8 +73,6 @@ if __name__ == "__main__":
     else:
         print("\nInvalid loss function.\n")
         sys.exit()
-
-
 
     ######### PREPROCESS TRAINING DATA #########
     DATA_DIR = os.path.join("data", "train")
@@ -95,7 +98,6 @@ if __name__ == "__main__":
                                                 SKULLSTRIP_SCRIPT_PATH,
                                                 N4_SCRIPT_PATH)
 
-
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
         atlasdir=final_preprocess_dir,
         patchsize=PATCH_SIZE,
@@ -108,7 +110,6 @@ if __name__ == "__main__":
         ct_patches.shape, mask_patches.shape))
 
     # train for some number of epochs
-
 
     # Manual early stopping
     min_delta = 1e-4
@@ -149,27 +150,19 @@ if __name__ == "__main__":
             existing_weights = os.listdir(WEIGHT_DIR)
             existing_weights.sort()
 
-            if len(existing_weights) == 0:
-                ser_model = inception(num_channels=num_channels,
-                                      loss=loss, ds=4, lr=learning_rate)
-                print(ser_model.summary())
-            else:
+            model = inception(model_path=MODEL_PATH,
+                              num_channels=num_channels,
+                              loss=loss,
+                              ds=4,
+                              lr=learning_rate,
+                              num_gpus=NUM_GPUS,
+                              verbose=1,)
+
+            if len(existing_weights) != 0:
                 prev_weights = os.path.join(WEIGHT_DIR, existing_weights[-1])
                 print("Continuing training with", prev_weights)
-                ser_model = load_model(prev_weights, custom_objects=custom_losses)
+                model.load_weights(prev_weights,)
 
-
-            if NUM_GPUS > 1:
-                parallel_model = ModelMGPU(ser_model, NUM_GPUS)
-                parallel_model.compile(Adam(lr=learning_rate),
-                                       loss=loss,
-                                       metrics=[dice_coef],)
-                model = parallel_model
-
-            else:
-                model = ser_model
-
-    
             ########## CALLBACKS ##########
             # checkpoints
             monitor = "val_dice_coef"
