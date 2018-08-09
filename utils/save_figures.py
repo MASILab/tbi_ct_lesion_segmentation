@@ -16,6 +16,7 @@ def scale_ct_for_png(img_data):
     ''' 
     new_img_data = img_data
     new_img_data[np.where(new_img_data < 0)] = 0
+    #new_img_data = np.divide(new_img_data, np.max(new_img_data) * 0.4)
     new_img_data = np.divide(new_img_data, np.max(new_img_data))
     new_img_data *= 255
     new_img_data = new_img_data.astype(np.uint8).T
