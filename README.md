@@ -1,3 +1,7 @@
-# tbi_ct_lesion_segmentation
+# tbi\_ct\_lesion\_segmentation
 
-N4BiasFieldCorrection provided by ANTs
+interleave\_train.py is the script to run at each site, provided all sites have MOUNT\_POINT mounted via some secure shell
+
+train.py trains a single-site model
+
+train\_dual.py is deprecated

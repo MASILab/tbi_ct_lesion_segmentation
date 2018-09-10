@@ -34,10 +34,14 @@ if __name__ == "__main__":
 
     MOUNT_POINT = os.path.join("..", "nihvandy", "ct_seg")
     LOGFILE = os.path.join(MOUNT_POINT, "multisite_training_log.txt")
-    WEIGHT_DIR = os.path.join(
-        MOUNT_POINT, "interleaved_weights", experiment_details)
+    WEIGHT_DIR = os.path.join(MOUNT_POINT,
+                              "interleaved_weights",
+                              experiment_details)
     TB_LOG_DIR = os.path.join(MOUNT_POINT, "tensorboard", utils.now())
     THIS_COMPUTER = open("host_id.cfg").read().split()[0]
+
+    MODEL_NAME = "inception_model_" + experiment_details
+    MODEL_PATH = os.path.join(WEIGHT_DIR, MODEL_NAME + ".json")
 
     # files and paths
     TRAIN_DIR = results.SRC_DIR
@@ -49,8 +53,9 @@ if __name__ == "__main__":
     PATCH_SIZE = [int(x) for x in results.patch_size.split("x")]
 
     # multi site ordering
-    ROUND_ROBIN_ORDER = open(os.path.join(MOUNT_POINT, "round_robin.cfg"))\
-        .read().split()
+    ROUND_ROBIN_ORDER = open(os.path.join(MOUNT_POINT, "round_robin.cfg"))
+        .read()
+        .split()
     if not os.path.exists(LOGFILE):
         os.system("touch" + " " + LOGFILE)
 
@@ -69,46 +74,31 @@ if __name__ == "__main__":
         print("\nInvalid loss function.\n")
         sys.exit()
 
+    ########### PREPROCESS TRAINING DATA ##########
 
-
-    ######### PREPROCESS TRAINING DATA #########
     DATA_DIR = os.path.join("data", "train")
-    HEALTHY_DIR = os.path.join(DATA_DIR, "healthy")
-
-    PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessing")
-    HEALTHY_PREPROCESSING_DIR = os.path.join(HEALTHY_DIR, "preprocessing")
-
+    PREPROCESSED_DIR = os.path.join(DATA_DIR, "preprocessed")
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
-    N4_SCRIPT_PATH = os.path.join("utils", "N4BiasFieldCorrection")
 
-    # get unhealthy patches
-    print("***** GETTING UNHEALTHY PATCHES *****")
-    filenames = [x for x in os.listdir(DATA_DIR)
-                 if not os.path.isdir((os.path.join(DATA_DIR, x)))]
+    preprocess_dir(DATA_DIR,
+                   PREPROCESSED_DIR,
+                   SKULLSTRIP_SCRIPT_PATH)
 
-    filenames.sort()
-
-    for filename in filenames:
-        final_preprocess_dir = utils.preprocess(filename,
-                                                DATA_DIR,
-                                                PREPROCESSING_DIR,
-                                                SKULLSTRIP_SCRIPT_PATH,
-                                                N4_SCRIPT_PATH)
-
+    ########## DATA IMPORT ##########
 
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
-        atlasdir=final_preprocess_dir,
+        atlasdir=PREPROCESSED_DIR,
         patchsize=PATCH_SIZE,
         max_patch=num_patches,
         num_channels=num_channels)
 
     print("Individual patch dimensions:", ct_patches[0].shape)
     print("Num patches:", len(ct_patches))
-    print("ct_patches shape: {}\nmask_patches shape: {}".format(
-        ct_patches.shape, mask_patches.shape))
+    print("ct_patches shape: {}\nmask_patches shape: {}"
+          .format(ct_patches.shape,
+                  mask_patches.shape))
 
-    # train for some number of epochs
-
+    ########## TRAINING ##########
 
     # Manual early stopping
     min_delta = 1e-4
@@ -124,8 +114,8 @@ if __name__ == "__main__":
             best_loss = float(logfile_data[-1][5])
             cur_epoch = int(logfile_data[-1][6])
         else:
-            most_recent = ROUND_ROBIN_ORDER[ROUND_ROBIN_ORDER.index(
-                THIS_COMPUTER)-1]
+            most_recent = ROUND_ROBIN_ORDER[ROUND_ROBIN_ORDER
+                                            .index(THIS_COMPUTER)-1]
             cur_patience = 0  # start with cur_patience of 0
             best_loss = 1e5  # some arbitrary large number
             cur_epoch = 0
@@ -149,32 +139,26 @@ if __name__ == "__main__":
             existing_weights = os.listdir(WEIGHT_DIR)
             existing_weights.sort()
 
-            if len(existing_weights) == 0:
-                ser_model = inception(num_channels=num_channels,
-                                      loss=loss, ds=4, lr=learning_rate)
-                print(ser_model.summary())
-            else:
+            model = inception(model_path=MODEL_PATH,
+                              num_channels=num_channels,
+                              loss=loss,
+                              ds=4,
+                              lr=learning_rate,
+                              num_gpus=NUM_GPUS,
+                              verbose=1,)
+
+            if len(existing_weights) != 0:
                 prev_weights = os.path.join(WEIGHT_DIR, existing_weights[-1])
                 print("Continuing training with", prev_weights)
-                ser_model = load_model(prev_weights, custom_objects=custom_losses)
+                model.load_weights(prev_weights,)
 
-
-            if NUM_GPUS > 1:
-                parallel_model = ModelMGPU(ser_model, NUM_GPUS)
-                parallel_model.compile(Adam(lr=learning_rate),
-                                       loss=loss,
-                                       metrics=[dice_coef],)
-                model = parallel_model
-
-            else:
-                model = ser_model
-
-    
             ########## CALLBACKS ##########
             # checkpoints
             monitor = "val_dice_coef"
-            checkpoint_filename = str(utils.now()) + "_" +\
-                monitor+"_{"+monitor+":.4f}_weights.hdf5"
+            checkpoint_filename = str(utils.now()) +
+                "_" +
+                monitor +
+                "_{" + monitor + ":.4f}_weights.hdf5"
 
             checkpoint_filename = os.path.join(WEIGHT_DIR, checkpoint_filename)
             checkpoint = ModelCheckpoint(checkpoint_filename,
@@ -195,8 +179,6 @@ if __name__ == "__main__":
                                mode='auto')
             '''
 
-            callbacks_list = [checkpoint, tb]
-
             ########## FIT MODEL ##########
             history = model.fit(ct_patches,
                                 mask_patches,
@@ -204,7 +186,7 @@ if __name__ == "__main__":
                                 epochs=1,
                                 verbose=1,
                                 validation_split=0.2,
-                                callbacks=callbacks_list,)
+                                callbacks=[checkpoint, tb],)
 
             cur_loss = history.history['val_loss'][-1]
 
