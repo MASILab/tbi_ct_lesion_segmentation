@@ -3,6 +3,7 @@ import sys
 import numpy as np
 
 from utils import utils, patch_ops
+from utils import preprocess
 
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
 from keras.models import load_model
@@ -24,7 +25,7 @@ if __name__ == "__main__":
 
     num_channels = results.num_channels
     num_epochs = 1000000
-    num_patches = results.num_patches  # 508257
+    num_patches = results.num_patches
     batch_size = results.batch_size
     model = results.model
     experiment_details = results.experiment_details
@@ -33,6 +34,9 @@ if __name__ == "__main__":
 
     WEIGHT_DIR = os.path.join("models", "weights", experiment_details)
     TB_LOG_DIR = os.path.join("models", "tensorboard", utils.now())
+
+    MODEL_NAME = "inception_model_" + experiment_details
+    MODEL_PATH = os.path.join(WEIGHT_DIR, MODEL_NAME + ".json")
 
     # files and paths
     TRAIN_DIR = results.SRC_DIR
@@ -44,7 +48,6 @@ if __name__ == "__main__":
     PATCH_SIZE = [int(x) for x in results.patch_size.split("x")]
 
     ######### MODEL AND CALLBACKS #########
-
     # determine loss
     if loss == "dice_coef":
         loss = dice_coef_loss
@@ -59,21 +62,18 @@ if __name__ == "__main__":
         sys.exit()
 
     if not model:
-        ser_model = inception(num_channels=num_channels,
-                              loss=loss, ds=4, lr=learning_rate)
+        model = inception(model_path=MODEL_PATH,
+                              num_channels=num_channels,
+                              loss=loss,
+                              ds=4,
+                              lr=learning_rate,
+                              num_gpus=NUM_GPUS,
+                              verbose=0,)
     else:
         print("Continuing training with", model)
-        ser_model = load_model(model, custom_objects=custom_losses)
+        model = load_model(model, custom_objects=custom_losses)
 
     monitor = "val_dice_coef"
-
-    print(ser_model.summary())
-
-    if NUM_GPUS > 1:
-        parallel_model = ModelMGPU(ser_model, NUM_GPUS)
-        parallel_model.compile(Adam(lr=learning_rate),
-                               loss=loss,
-                               metrics=[dice_coef],)
 
     # checkpoints
     checkpoint_filename = str(utils.now()) +\
@@ -101,32 +101,18 @@ if __name__ == "__main__":
 
     ######### PREPROCESS TRAINING DATA #########
     DATA_DIR = os.path.join("data", "train")
-    HEALTHY_DIR = os.path.join(DATA_DIR, "healthy")
-
-    PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessing")
-    HEALTHY_PREPROCESSING_DIR = os.path.join(HEALTHY_DIR, "preprocessing")
-
+    PREPROCESSED_DIR = os.path.join(DATA_DIR, "preprocessed")
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
-    N4_SCRIPT_PATH = os.path.join("utils", "N4BiasFieldCorrection")
 
-    # get unhealthy patches
-    print("***** GETTING UNHEALTHY PATCHES *****")
-    filenames = [x for x in os.listdir(DATA_DIR)
-                 if not os.path.isdir((os.path.join(DATA_DIR, x)))]
+    preprocess.preprocess_dir(DATA_DIR,
+                         PREPROCESSED_DIR,
+                         SKULLSTRIP_SCRIPT_PATH)
 
-    filenames.sort()
-
-    for filename in filenames:
-        final_preprocess_dir = utils.preprocess(filename,
-                                                DATA_DIR,
-                                                PREPROCESSING_DIR,
-                                                SKULLSTRIP_SCRIPT_PATH,
-                                                N4_SCRIPT_PATH)
-
+    ######### DATA IMPORT #########
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
-        atlasdir=final_preprocess_dir,
+        atlas_dir=PREPROCESSED_DIR,
         patchsize=PATCH_SIZE,
-        max_patch=num_patches,
+        maxpatch=num_patches,
         num_channels=num_channels)
 
     print("Individual patch dimensions:", ct_patches[0].shape)
@@ -134,21 +120,11 @@ if __name__ == "__main__":
     print("ct_patches shape: {}\nmask_patches shape: {}".format(
         ct_patches.shape, mask_patches.shape))
 
-    # train for some number of epochs
-
-    if NUM_GPUS > 1:
-        history = parallel_model.fit(ct_patches,
-                                     mask_patches,
-                                     batch_size=batch_size,
-                                     epochs=num_epochs,
-                                     verbose=1,
-                                     validation_split=0.2,
-                                     callbacks=callbacks_list,)
-    else:
-        history = ser_model.fit(ct_patches,
-                                mask_patches,
-                                batch_size=batch_size,
-                                epochs=num_epochs,
-                                verbose=1,
-                                validation_split=0.2,
-                                callbacks=callbacks_list,)
+    ######### TRAINING #########
+    history = model.fit(ct_patches,
+                                 mask_patches,
+                                 batch_size=batch_size,
+                                 epochs=num_epochs,
+                                 verbose=1,
+                                 validation_split=0.2,
+                                 callbacks=callbacks_list,)

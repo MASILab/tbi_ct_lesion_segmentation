@@ -2,8 +2,6 @@ from time import strftime
 from urllib.request import urlopen
 
 from .skullstrip import skullstrip
-from .n4biascorrect import n4biascorrect
-from .resample import resample
 from .reorient import orient, reorient
 
 import os

@@ -2,9 +2,9 @@ from time import strftime
 from urllib.request import urlopen
 
 from .skullstrip import skullstrip
-from .n4biascorrect import n4biascorrect
-from .resample import resample
 from .reorient import orient, reorient
+
+from multiprocessing.pool import ThreadPool
 
 import os
 import argparse
@@ -18,6 +18,7 @@ from tqdm import tqdm
 import random
 import copy
 import csv
+import shutil
 
 
 def preprocess(filename, src_dir, dst_dir, tmp_dir, skullstrip_script_path, verbose=0,
@@ -44,8 +45,11 @@ def preprocess(filename, src_dir, dst_dir, tmp_dir, skullstrip_script_path, verb
             os.makedirs(d)
 
     # apply preprocessing
-    skullstrip(filename, src_dir, SKULLSTRIP_DIR, skullstrip_script_path, verbose)
-    orient(filename, SKULLSTRIP_DIR, ORIENT_DIR, verbose)
+    if not "mask" in filename:
+        skullstrip(filename, src_dir, SKULLSTRIP_DIR, skullstrip_script_path, verbose)
+        orient(filename, SKULLSTRIP_DIR, ORIENT_DIR, verbose)
+    else:
+        orient(filename, src_dir, ORIENT_DIR, verbose)
 
     # move to dst_dir
     final_preprocess_dir = ORIENT_DIR 

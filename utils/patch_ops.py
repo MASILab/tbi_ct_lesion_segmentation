@@ -121,7 +121,7 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
     print("Number of patches used: {} out of {} (max: {})"
           .format(num_patches,
                   total_lesion_patches),
-                  maxpatch))
+                  maxpatch)
 
     randidx=rng.sample(range(0, total_lesion_patches), num_patches)
     # here, 3 corresponds to each axis of the 3D volume
