@@ -34,6 +34,12 @@ def preprocess(filename, src_dir, dst_dir, tmp_dir, skullstrip_script_path, verb
     Returns: TODO, the directory location of the final processed image
 
     '''
+    if os.path.isdir(os.path.join(src_dir, filename)):
+        return
+
+    if os.path.exists(os.path.join(dst_dir, filename)):
+        return
+
     ########## Directory Setup ##########
     SKULLSTRIP_DIR = os.path.join(tmp_dir, "skullstripped")
     ORIENT_DIR = os.path.join(tmp_dir, "orient")
@@ -43,6 +49,7 @@ def preprocess(filename, src_dir, dst_dir, tmp_dir, skullstrip_script_path, verb
     for d in DIR_LIST:
         if not os.path.exists(d):
             os.makedirs(d)
+
 
     # apply preprocessing
     if not "mask" in filename:

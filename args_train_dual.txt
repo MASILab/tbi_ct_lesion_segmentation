@@ -1,1 +1,0 @@
---datadir data/train --psize 255x255 --batch_size 8 --num_patches 1000 --num_channels 1 --loss cdc --experiment_details 180716_dual_boosted_cdc

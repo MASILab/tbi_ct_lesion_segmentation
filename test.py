@@ -36,7 +36,7 @@ if __name__ == "__main__":
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
     N4_SCRIPT_PATH = os.path.join("utils", "N4BiasFieldCorrection")
 
-    PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessing")
+    PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessed")
     SEG_ROOT_DIR = os.path.join(DATA_DIR, "segmentations")
     STATS_DIR = os.path.join("results", experiment_name)
     FIGURES_DIR = os.path.join("results", experiment_name, "figures")

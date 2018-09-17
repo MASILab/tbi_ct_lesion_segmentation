@@ -105,6 +105,7 @@ def get_center_coords(ct, mask, ratio):
     return healthy_coords, lesion_coords
 
 
+
 def get_patches(invols, mask, patchsize, maxpatch, num_channels):
     rng = random.SystemRandom()
 
@@ -118,10 +119,12 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
     total_lesion_patches = len(mask_lesion_indices[0])
 
     num_patches = np.minimum(maxpatch, total_lesion_patches)
+    '''
     print("Number of patches used: {} out of {} (max: {})"
           .format(num_patches,
-                  total_lesion_patches),
-                  maxpatch)
+                  total_lesion_patches,
+                  maxpatch))
+    '''
 
     randidx=rng.sample(range(0, total_lesion_patches), num_patches)
     # here, 3 corresponds to each axis of the 3D volume
@@ -147,8 +150,7 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
     shuffled_healthy_brain_indices= np.ndarray((3, num_patches))
     for i in range(0, num_patches):
         for j in range(0, 3):
-            shuffled_healthy_brain_indices[j,
-                i] = healthy_brain_indices[j, randix0[i]]
+            shuffled_healthy_brain_indices[j,i] = healthy_brain_indices[j, randidx0[i]]
     shuffled_healthy_brain_indices= np.asarray(shuffled_healthy_brain_indices, dtype = int)
 
     newidx = np.concatenate([shuffled_mask_lesion_indices,
@@ -219,12 +221,15 @@ def CreatePatchesForTraining(atlasdir, patchsize, max_patch=150000, num_channels
     single_subject_num_patches = total_num_patches // numatlas
     print("Allowed total number of patches =", total_num_patches)
 
-    CT_matsize = (total_num_patches, patchsize[0], patchsize[1], num_channels)
-    Mask_matsize = (total_num_patches, patchsize[0], patchsize[1], 1)
+    # note here we double the size of the tensors to allow for healthy patches too
+    doubled_num_patches = total_num_patches * 2
+    CT_matsize = (doubled_num_patches, patchsize[0], patchsize[1], num_channels)
+    Mask_matsize = (doubled_num_patches, patchsize[0], patchsize[1], 1)
+
     CTPatches = np.zeros(CT_matsize, dtype=np.float16)
     MaskPatches = np.zeros(Mask_matsize, dtype=np.float16)
 
-    indices = [x for x in range(total_num_patches)]
+    indices = [x for x in range(doubled_num_patches)]
     indices = shuffle(indices, random_state=0)
     cur_idx = 0
 
@@ -285,9 +290,6 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels, ratio):
         - ratio: float in [0,1], percentage of healthy:lesion patches w.r.t. maxpatch
                  1 == 100% healthy patches, 0.2 == 20% healthy patches, 80% lesion patches
     '''
-
-    fuzzy_edge = 10
-    blood_HU_range = range(-fuzzy_edge + 13, fuzzy_edge + 75 + 1)
 
     healthy_coords, lesion_coords = get_center_coords(invols[0], mask, ratio)
 

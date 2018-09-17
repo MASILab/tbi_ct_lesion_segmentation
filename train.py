@@ -63,12 +63,12 @@ if __name__ == "__main__":
 
     if not model:
         model = inception(model_path=MODEL_PATH,
-                              num_channels=num_channels,
-                              loss=loss,
-                              ds=4,
-                              lr=learning_rate,
-                              num_gpus=NUM_GPUS,
-                              verbose=0,)
+                          num_channels=num_channels,
+                          loss=loss,
+                          ds=4,
+                          lr=learning_rate,
+                          num_gpus=NUM_GPUS,
+                          verbose=0,)
     else:
         print("Continuing training with", model)
         model = load_model(model, custom_objects=custom_losses)
@@ -105,14 +105,14 @@ if __name__ == "__main__":
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
 
     preprocess.preprocess_dir(DATA_DIR,
-                         PREPROCESSED_DIR,
-                         SKULLSTRIP_SCRIPT_PATH)
+                              PREPROCESSED_DIR,
+                              SKULLSTRIP_SCRIPT_PATH,)
 
     ######### DATA IMPORT #########
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
-        atlas_dir=PREPROCESSED_DIR,
+        atlasdir=PREPROCESSED_DIR,
         patchsize=PATCH_SIZE,
-        maxpatch=num_patches,
+        max_patch=num_patches,
         num_channels=num_channels)
 
     print("Individual patch dimensions:", ct_patches[0].shape)
@@ -122,9 +122,9 @@ if __name__ == "__main__":
 
     ######### TRAINING #########
     history = model.fit(ct_patches,
-                                 mask_patches,
-                                 batch_size=batch_size,
-                                 epochs=num_epochs,
-                                 verbose=1,
-                                 validation_split=0.2,
-                                 callbacks=callbacks_list,)
+                        mask_patches,
+                        batch_size=batch_size,
+                        epochs=num_epochs,
+                        verbose=1,
+                        validation_split=0.2,
+                        callbacks=callbacks_list,)

@@ -27,7 +27,8 @@ def orient(filename, src_dir, dst_dir, verbose=0):
     if verbose == 1:
         print("Orienting to " + target_orientation+"...")
 
-    call = "3dresample -orient" + " " + target_orientation + " " +\
+    resample_path = os.path.join("~","abin", "3dresample")
+    call = resample_path + " -orient" + " " + target_orientation + " " +\
         "-inset" + " " + infile + " " +\
         "-prefix" + " " + outfile
     os.system(call)
@@ -51,7 +52,8 @@ def reorient(filename, orig_dir, seg_dir, seg_orient="RAI"):
         - src_dir: string, source directory
     '''
     orig_filepath = os.path.join(orig_dir, filename)
-    call = "3dinfo -orient " + orig_filepath
+    info3d_path = os.path.join("~","abin", "3dinfo")
+    call = info3d_path + " -orient " + orig_filepath
     pipe = Popen(call, shell=True, stdout=PIPE).stdout
     three_digit_code = pipe.read()[:3].decode()
     pipe.close()
@@ -64,6 +66,7 @@ def reorient(filename, orig_dir, seg_dir, seg_orient="RAI"):
     # reorient lesion membership
     infile = os.path.join(seg_dir, filename)
     outfile = os.path.join(dst_dir, filename)
-    call = "3dresample -orient " + three_digit_code\
+    resample_path = os.path.join("~","abin", "3dresample")
+    call = resample_path + " -orient " + three_digit_code\
         + " -inset " + infile + " -prefix " + outfile
     os.system(call)
