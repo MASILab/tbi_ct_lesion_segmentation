@@ -67,7 +67,7 @@ if __name__ == "__main__":
         model = unet(model_path=MODEL_PATH,
                           num_channels=num_channels,
                           loss=continuous_dice_coef_loss,
-                          ds=4,
+                          ds=2,
                           lr=learning_rate,
                           num_gpus=NUM_GPUS,
                           verbose=1,)
