@@ -49,6 +49,8 @@ Run `train.py` to train a classification model with some desired arguments.
 
 `--experiment_details`: A string describing this training run, for human organization
 
+`--gpuid`: the ID of the GPU to train with, for multi-GPU systems. Enter `-1` to utilize all available GPUs
+
 Example usage:
 `python train.py --traindir data/train/ --psize 128x128 --num_patches 1000 --batch_size 128 --num_channels 1 --experiment_details my_experiment`
 
