@@ -151,6 +151,12 @@ def parse_args(session):
                         dest='num_channels', default=1,
                         help='Number of channels to include. First is CT, second is atlas,\
                                 third is unskullstripped CT')
+    parser.add_argument('--gpuid', required=False, action='store', type=int, dest='GPUID',
+                        help='For a multi-GPU system, the trainng can be run on different GPUs.\
+                        Use a GPU id (single number), eg: 1 or 2 to run on that particular GPU.\
+                        0 indicates first GPU.  Optional argument. Default is the first GPU.\
+                        -1 for all GPUs.')
+
 
     return parser.parse_args()
 

@@ -28,6 +28,19 @@ if __name__ == "__main__":
     results = utils.parse_args("validate")
     num_channels = results.num_channels
 
+    NUM_GPUS = 1
+    if results.GPUID == None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    elif results.GPUID == -1:
+        # find maximum number of available GPUs
+        call = "nvidia-smi --list-gpus"
+        pipe = Popen(call, shell=True, stdout=PIPE).stdout
+        available_gpus = pipe.read().decode().splitlines()
+        NUM_GPUS = len(available_gpus)
+    else:
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(results.GPUID)
+
+
     axial_model_filename = results.axial_weights
     sagittal_model_filename = results.sagittal_weights
     coronal_model_filename = results.coronal_weights
