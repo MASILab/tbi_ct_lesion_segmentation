@@ -2,7 +2,7 @@ import os
 import sys
 import numpy as np
 
-from utils import utils, patch_ops, save_args_to_csv
+from utils import utils, patch_ops
 from utils import preprocess
 
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     loss = results.loss
     learning_rate = 1e-4
 
-    save_args_to_csv(results,"results", experiment_details) 
+    utils.save_args_to_csv(results, os.path.join("results", experiment_details))
 
     WEIGHT_DIR = os.path.join("models", "weights", experiment_details)
     TB_LOG_DIR = os.path.join("models", "tensorboard", start_time)

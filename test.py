@@ -34,7 +34,8 @@ if __name__ == "__main__":
 
     thresh = results.threshold
     experiment_name = axial_model_filename.split(os.sep)[-2]
-    util.save_args_to_csv(results, "results", experiment_name)
+    utils.save_args_to_csv(results, os.path.join("results", experiment_name))
+
     DATA_DIR = results.VAL_DIR
 
     ######################## PREPROCESS TESTING DATA ########################

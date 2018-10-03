@@ -30,12 +30,12 @@ def save_args_to_csv(args_obj, out_dir):
         os.makedirs(out_dir)
 
     out_file = os.path.join(out_dir, "script_arguments.csv")
-    with open(out_file, 'wb') as f:
+    with open(out_file, 'w') as f:
         writer = csv.writer(f, delimiter=',')
         writer.writerow(["Argument", "Value"])
 
-        for arg in vars(args):
-            writer.writerow([arg, getatr(args, arg)])
+        for arg in vars(args_obj):
+            writer.writerow([arg, getattr(args_obj, arg)])
 
 
 def preprocess(filename, src_dir, preprocess_root_dir, skullstrip_script_path, n4_script_path,
@@ -105,7 +105,7 @@ def parse_args(session):
                             default=256, type=int,
                             help='Batch size for training.')
         parser.add_argument('--loss', required=False, action='store', dest='loss',
-                            default='bce', type=str,
+                            default='cdc', type=str,
                             help='Loss for the model to optimize over. Options are: \
                             bce, dice_coef, tpr, cdc, tpw_cdc, bce_tp')
         parser.add_argument('--model', required=False, action='store', dest='model',
