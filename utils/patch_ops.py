@@ -3,6 +3,7 @@ import numpy as np
 import nibabel as nib
 from sklearn.utils import shuffle
 from tqdm import tqdm
+from .pad import pad_image
 import random
 import copy
 from time import strftime, time
@@ -17,8 +18,9 @@ def PadImage(vol, padsize):
     padsize = np.asarray(padsize, dtype=int)
     dim2 = dim+2*padsize
     temp = np.zeros(dim2, dtype=float)
-    temp[padsize:dim[0]+padsize, padsize:dim[1] +
-         padsize, padsize:dim[2]+padsize] = vol
+    temp[padsize:dim[0]+padsize,
+         padsize:dim[1]+padsize,
+         padsize:dim[2]+padsize] = vol
     return temp
 
 
@@ -105,7 +107,6 @@ def get_center_coords(ct, mask, ratio):
     return healthy_coords, lesion_coords
 
 
-
 def get_patches(invols, mask, patchsize, maxpatch, num_channels):
     rng = random.SystemRandom()
 
@@ -126,54 +127,70 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
                   maxpatch))
     '''
 
-    randidx=rng.sample(range(0, total_lesion_patches), num_patches)
+    randidx = rng.sample(range(0, total_lesion_patches), num_patches)
     # here, 3 corresponds to each axis of the 3D volume
-    shuffled_mask_lesion_indices=np.ndarray((3, num_patches))
+    shuffled_mask_lesion_indices = np.ndarray((3, num_patches))
     for i in range(0, num_patches):
         for j in range(0, 3):
             shuffled_mask_lesion_indices[j,
-                i] = mask_lesion_indices[j, randidx[i]]
-    shuffled_mask_lesion_indices= np.asarray(shuffled_mask_lesion_indices, dtype = int)
+                                         i] = mask_lesion_indices[j, randidx[i]]
+    shuffled_mask_lesion_indices = np.asarray(
+        shuffled_mask_lesion_indices, dtype=int)
 
     # mask out all lesion indices to get all healthy indices
-    tmp= copy.deepcopy(invols[0])
-    tmp[tmp > 0]= 1
-    tmp[tmp <= 0]= 0
-    tmp= np.multiply(tmp, 1-mask)
+    tmp = copy.deepcopy(invols[0])
+    tmp[tmp > 0] = 1
+    tmp[tmp <= 0] = 0
+    tmp = np.multiply(tmp, 1-mask)
 
-    healthy_brain_indices= np.nonzero(tmp)
-    healthy_brain_indices= np.asarray(healthy_brain_indices, dtype = int)
-    num_healthy_indices= len(healthy_brain_indices[0])
+    healthy_brain_indices = np.nonzero(tmp)
+    healthy_brain_indices = np.asarray(healthy_brain_indices, dtype=int)
+    num_healthy_indices = len(healthy_brain_indices[0])
 
-    randidx0= rng.sample(range(0, num_healthy_indices), num_patches)
+    randidx0 = rng.sample(range(0, num_healthy_indices), num_patches)
     # here, 3 corresponds to each axis of the 3D volume
-    shuffled_healthy_brain_indices= np.ndarray((3, num_patches))
+    shuffled_healthy_brain_indices = np.ndarray((3, num_patches))
     for i in range(0, num_patches):
         for j in range(0, 3):
-            shuffled_healthy_brain_indices[j,i] = healthy_brain_indices[j, randidx0[i]]
-    shuffled_healthy_brain_indices= np.asarray(shuffled_healthy_brain_indices, dtype = int)
+            shuffled_healthy_brain_indices[j,
+                                           i] = healthy_brain_indices[j, randidx0[i]]
+    shuffled_healthy_brain_indices = np.asarray(
+        shuffled_healthy_brain_indices, dtype=int)
 
     newidx = np.concatenate([shuffled_mask_lesion_indices,
-                            shuffled_healthy_brain_indices], axis = 1)
+                             shuffled_healthy_brain_indices], axis=1)
 
-    CT_matsize= (2*num_patches, patchsize[0], patchsize[1], num_channels)
-    Mask_matsize= (2*num_patches, patchsize[0], patchsize[1], 1)
+    CT_matsize = (2*num_patches, patchsize[0], patchsize[1], num_channels)
+    Mask_matsize = (2*num_patches, patchsize[0], patchsize[1], 1)
 
-    CTPatches= np.ndarray(CT_matsize, dtype=np.float16)
-    MaskPatches= np.ndarray(Mask_matsize, dtype=np.float16)
+    CTPatches = np.ndarray(CT_matsize, dtype=np.float16)
+    MaskPatches = np.ndarray(Mask_matsize, dtype=np.float16)
 
     for i in range(0, 2*num_patches):
-        I= newidx[0, i]
-        J= newidx[1, i]
-        K= newidx[2, i]
+        I = newidx[0, i]
+        J = newidx[1, i]
+        K = newidx[2, i]
+        
 
         for c in range(num_channels):
-            CTPatches[i, : , : , c] = invols[c][I - dsize[0]: I + dsize[0] + 1,
+            '''
+            CTPatches[i, :, :, c] = invols[c][I - dsize[0]: I + dsize[0] + 1,
                                               J - dsize[1]: J + dsize[1] + 1,
                                               K]
+            '''
+            # trying even-sided patches
+            CTPatches[i, :, :, c] = invols[c][I - dsize[0]: I + dsize[0],
+                                              J - dsize[1]: J + dsize[1],
+                                              K]
 
-        MaskPatches[i, : , : , 0] = mask[I - dsize[0]: I + dsize[0] + 1,
+        '''
+        MaskPatches[i, :, :, 0] = mask[I - dsize[0]: I + dsize[0] + 1,
                                        J - dsize[1]:J + dsize[1] + 1,
+                                       K]
+        '''
+        # trying even-sided patches
+        MaskPatches[i, :, :, 0] = mask[I - dsize[0]: I + dsize[0],
+                                       J - dsize[1]:J + dsize[1],
                                        K]
 
     CTPatches = np.asarray(CTPatches, dtype=np.float16)
@@ -182,8 +199,7 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
     return CTPatches, MaskPatches
 
 
-
-def CreatePatchesForTraining(atlasdir, patchsize, max_patch=150000, num_channels=1):
+def CreatePatchesForTraining(atlasdir, plane, patchsize, max_patch=150000, num_channels=1):
     '''
 
     Params:
@@ -223,8 +239,19 @@ def CreatePatchesForTraining(atlasdir, patchsize, max_patch=150000, num_channels
 
     # note here we double the size of the tensors to allow for healthy patches too
     doubled_num_patches = total_num_patches * 2
-    CT_matsize = (doubled_num_patches, patchsize[0], patchsize[1], num_channels)
-    Mask_matsize = (doubled_num_patches, patchsize[0], patchsize[1], 1)
+    if plane == "axial":
+        CT_matsize = (doubled_num_patches,
+                      patchsize[0], patchsize[1], num_channels)
+        Mask_matsize = (doubled_num_patches, patchsize[0], patchsize[1], 1)
+    elif plane == "sagittal":
+        CT_matsize = (doubled_num_patches,
+                      patchsize[0], 16, num_channels)
+        Mask_matsize = (doubled_num_patches, patchsize[0], 16, 1)
+    elif plane == "coronal":
+        CT_matsize = (doubled_num_patches,
+                      16, patchsize[1], num_channels)
+        Mask_matsize = (doubled_num_patches, 16, patchsize[1], 1)
+
 
     CTPatches = np.zeros(CT_matsize, dtype=np.float16)
     MaskPatches = np.zeros(Mask_matsize, dtype=np.float16)
@@ -232,6 +259,12 @@ def CreatePatchesForTraining(atlasdir, patchsize, max_patch=150000, num_channels
     indices = [x for x in range(doubled_num_patches)]
     indices = shuffle(indices, random_state=0)
     cur_idx = 0
+
+    # interpret plane
+    planar_codes = {"axial": (0, 1, 2),
+                    "sagittal": (1, 2, 0),
+                    "coronal": (2, 0, 1)}
+    planar_code = planar_codes[plane]
 
     for i in tqdm(range(0, numatlas)):
         ctname = ct_names[i]
@@ -247,13 +280,27 @@ def CreatePatchesForTraining(atlasdir, patchsize, max_patch=150000, num_channels
         mask = temp.get_data()
         mask = np.asarray(mask, dtype=np.float16)
 
-        ctt = PadImage(ct, padsize)
-        maskt = PadImage(mask, padsize)
+        #ct = PadImage(ct, padsize)
+        #mask = PadImage(mask, padsize)
 
-        invols = [ctt] # can handle multi-channel input here
+        target_dims = (512*2, 512*2, 64)
+        ct = pad_image(ct, target_dims)
+        mask = pad_image(mask, target_dims)
+
+        ct = np.transpose(ct, axes=planar_code)
+        mask = np.transpose(mask, axes=planar_code)
+
+        invols = [ct]  # can handle multichannel here
+
+        # adjusting patch size after transpose
+        if ct.shape[0] < ct.shape[1]:
+            patchsize = (ct.shape[0]//4, patchsize[1])
+        if ct.shape[1] < ct.shape[0]:
+            patchsize = (patchsize[0], ct.shape[1]//4)
+        patchsize = np.asarray(patchsize, dtype=int)
 
         CTPatchesA, MaskPatchesA = get_patches(invols,
-                                               maskt,
+                                               mask,
                                                patchsize,
                                                single_subject_num_patches,
                                                num_channels,)
@@ -261,311 +308,9 @@ def CreatePatchesForTraining(atlasdir, patchsize, max_patch=150000, num_channels
         CTPatchesA = np.asarray(CTPatchesA, dtype=np.float16)
         MaskPatchesA = np.asarray(MaskPatchesA, dtype=np.float16)
 
-
         for ct_patch, mask_patch in zip(CTPatchesA, MaskPatchesA):
             CTPatches[indices[cur_idx], :, :, :] = ct_patch
             MaskPatches[indices[cur_idx], :, :, :] = mask_patch
             cur_idx += 1
 
     return (CTPatches, MaskPatches)
-
-                                            
-
-"""
-
-# This might be faster than the above implementation, but need to verify.
-# For now, disabling this.
-
-def get_patches(invols, mask, patchsize, maxpatch, num_channels, ratio):
-    '''
-    Gets patches from a single subject.
-
-    Params:
-        - invols: list of ndarrays, the images of interest. Each element is a channel.
-                  First channel should be the CT, the other two are arbitrary extras.
-        - mask: 3D ndarray, single-channel binary mask image of the lesions
-        - patchsize: 2D int ndarray, two numbers corresponding to length of sides of patch
-        - maxpatch: int, maximum allowed number of patches
-        - num_channels: int, number of channels to use.  Must match rank of invols.
-        - ratio: float in [0,1], percentage of healthy:lesion patches w.r.t. maxpatch
-                 1 == 100% healthy patches, 0.2 == 20% healthy patches, 80% lesion patches
-    '''
-
-    healthy_coords, lesion_coords = get_center_coords(invols[0], mask, ratio)
-
-    # print("Ratio: {}\nLength Healthy coords: {}\nMaxpatch: {}".format(ratio, len(healthy_coords), maxpatch))
-
-    if ratio == 1:
-        num_patches = np.minimum(maxpatch, len(healthy_coords))
-    else:
-        num_patches = np.minimum(maxpatch, len(lesion_coords))
-
-    # print("NUM PATCHES:", num_patches)
-
-    # allocate ndarray of maxpatch size
-    ct_tensor_shape = (num_patches, patchsize[0], patchsize[1], num_channels)
-    mask_tensor_shape = (num_patches, patchsize[0], patchsize[1], 1)
-    CTPatches = np.ndarray(ct_tensor_shape, dtype = np.float16)
-    MaskPatches = np.zeros(ct_tensor_shape, dtype = np.float16)
-
-    # radius from the center coord to gather patches from
-    patch_radius = patchsize // 2
-
-    # set up iterators
-    healthy_patch_iter = iter(healthy_coords)
-    lesion_patch_iter = iter(lesion_coords)
-
-    # order of indices in which to place patches
-    # this pre-shuffles the data
-    target_indices = [x for x in range(num_patches)]
-    target_indices = shuffle(target_indices, random_state = 0)
-
-    # extract patches
-    for counter, i in enumerate(target_indices):
-        # swap over to healthy if past ratio limit
-        if counter >= (1-ratio) * num_patches:
-            # get coordinates from the iterator
-            healthy_dims = next(healthy_patch_iter)
-            x_1 = healthy_dims[0] - patch_radius[0]
-            x_2 = healthy_dims[0] + patch_radius[0] + 1
-            y_1 = healthy_dims[1] - patch_radius[1]
-            y_2 = healthy_dims[1] + patch_radius[1] + 1
-            z = healthy_dims[2]
-        else:
-            # get coordinates from the iterator
-            lesion_dims = next(lesion_patch_iter)
-            # get start and stop dimensions according to patch_radius
-            x_1 = lesion_dims[0] - patch_radius[0]
-            x_2 = lesion_dims[0] + patch_radius[0] + 1
-            y_1 = lesion_dims[1] - patch_radius[1]
-            y_2 = lesion_dims[1] + patch_radius[1] + 1
-            z = lesion_dims[2]
-
-        '''
-        # visualize a patch, then exit
-
-        print("\n\nDEBUG HISTOGRAMS \n\n")
-        fig = plt.figure()
-        a = fig.add_subplot(1,2,1)
-
-        imgplot = plt.imshow(invols[0][x_1:x_2, y_1:y_2, z])
-        a.set_title("CT patch")
-
-        # a = fig.add_subplot(1,2,2)
-        # maskplot = plt.imshow(mask[x_1:x_2, y_1:y_2, z])
-        # a.set_title("Mask patch")
-
-        hist, bin_edges = np.histogram(invols[0][x_1:x_2, y_1:y_2, z])
-        a = fig.add_subplot(1,2,2)
-        histplot = plt.hist(hist)
-        a.set_title("Intensity histogram")
-
-        plt.show()
-
-        cmd = input()
-        if cmd == "q":
-            sys.exit()
-
-
-        '''
-
-        # place patches in ndarrays
-        for c in range(num_channels):
-            CTPatches[i, : , : , c] = invols[c][x_1: x_2, y_1: y_2, z]
-
-        # CTPatches[i,:,:,:][np.invert(np.isin(CTPatches[i,:,:,:], blood_HU_range))] = 0
-
-        MaskPatches[i, : , : , 0] = mask[x_1: x_2, y_1: y_2, z]
-
-    return CTPatches, MaskPatches
-
-
-def CreatePatchesForTraining(atlasdir, patchsize, unskullstrippeddir = None,
-                             max_patch = 150000, num_channels = 1, healthy = False,
-                             linear_downscaling = False):
-    '''
-    This code is identical to the main() function immediately below,
-    except instead of training the model it returns a tuple containing
-    the CT patches and the mask patches.
-
-    As such, there is no need for the outdir parameter.
-
-    Params:
-        - TODO
-        - healthy: bool, False if not going over the healthy dataset, true otherwise
-
-    '''
-
-    if healthy:
-        # get filenames
-        ct_names=os.listdir(atlasdir)
-        ct_names=[x for x in ct_names if "CT" in x]
-        ct_names.sort()
-
-        numatlas=len(ct_names)
-
-        patchsize=np.asarray(patchsize, dtype = int)
-        padsize=np.max(patchsize + 1) / 2
-
-        # hard coded for now
-        healthy_ratio=1
-
-        total_num_patches=max_patch
-
-        print("Total number of patches:", max_patch)
-        print("Number atlases:", numatlas)
-
-        single_subject_num_patches=total_num_patches // numatlas
-        print("Allowed total number of patches =", total_num_patches)
-        print("Number of patches per image =", single_subject_num_patches)
-
-        CT_matsize=(total_num_patches,
-                      patchsize[0], patchsize[1], num_channels)
-        Mask_matsize = (total_num_patches, patchsize[0], patchsize[1], 1)
-        CTPatches = np.zeros(CT_matsize, dtype=np.float16)
-        MaskPatches = np.zeros(Mask_matsize, dtype=np.float16)
-
-        count2 = 0
-        count1 = 0
-
-        indices = [x for x in range(total_num_patches)]
-        indices = shuffle(indices, random_state=0)
-        cur_idx = 0
-
-        for i in tqdm(range(0, numatlas)):
-            ctname = ct_names[i]
-            ctname = os.path.join(atlasdir, ctname)
-            temp = nib.load(ctname)
-            ct = temp.get_data()
-            ct = np.asarray(ct, dtype=np.float16)
-
-            dim = ct.shape
-
-            ctt = PadImage(ct, padsize)
-            # for healthy images, the masks are all zeros
-            maskt = np.zeros(shape=ctt.shape)
-
-            invols = [ctt]
-
-            CTPatchesA, MaskPatchesA = get_patches(invols,
-                                                   maskt,
-                                                   patchsize,
-                                                   single_subject_num_patches,
-                                                   num_channels,
-                                                   ratio=healthy_ratio)
-
-            CTPatchesA = np.asarray(CTPatchesA, dtype=np.float16)
-            MaskPatchesA = np.asarray(MaskPatchesA, dtype=np.float16)
-
-            for ct_patch, mask_patch in zip(CTPatchesA, MaskPatchesA):
-                CTPatches[indices[cur_idx], :, :, :] = ct_patch
-                MaskPatches[indices[cur_idx], :, :, :] = mask_patch
-                cur_idx += 1
-
-            dim = CTPatchesA.shape
-            count2 = count1 + dim[0]
-
-            count1 = count1 + dim[0]
-
-        dim = (count2, patchsize[0], patchsize[1], int(1))
-
-        if linear_downscaling:
-            CTPatches /= np.max(CTPatches)
-            CTPatches[np.where(CTPatches < 0)] = 0
-
-        return (CTPatches, MaskPatches)
-
-    else:
-        # get filenames
-        ct_names = os.listdir(atlasdir)
-        mask_names = os.listdir(atlasdir)
-
-        ct_names = [x for x in ct_names if "CT" in x]
-        mask_names = [x for x in mask_names if "mask" in x]
-
-        ct_names.sort()
-        mask_names.sort()
-
-        numatlas = len(ct_names)
-
-        patchsize = np.asarray(patchsize, dtype=int)
-        padsize = np.max(patchsize + 1) / 2
-
-        # hard coded for now
-        healthy_ratio = 0
-
-        # calculate total number of voxels for all images to pre-allocate array
-        f = 0
-        for i in range(0, numatlas):
-            maskname = mask_names[i]
-            maskname = os.path.join(atlasdir, maskname)
-            temp = nib.load(maskname)
-            mask = temp.get_data()
-            f = f + np.sum(mask)
-
-        print("Total number of lesion patches =", f)
-        total_num_patches = int(np.minimum(max_patch * numatlas, f))
-        single_subject_num_patches = total_num_patches // numatlas
-        print("Allowed total number of patches =", total_num_patches)
-
-        CT_matsize = (total_num_patches,
-                      patchsize[0], patchsize[1], num_channels)
-        Mask_matsize = (total_num_patches, patchsize[0], patchsize[1], 1)
-        CTPatches = np.zeros(CT_matsize, dtype=np.float16)
-        MaskPatches = np.zeros(Mask_matsize, dtype=np.float16)
-
-        count2 = 0
-        count1 = 0
-
-        indices = [x for x in range(total_num_patches)]
-        indices = shuffle(indices, random_state=0)
-        cur_idx = 0
-
-        for i in tqdm(range(0, numatlas)):
-            ctname = ct_names[i]
-            ctname = os.path.join(atlasdir, ctname)
-
-            temp = nib.load(ctname)
-            ct = temp.get_data()
-            ct = np.asarray(ct, dtype=np.float16)
-
-            maskname = mask_names[i]
-            maskname = os.path.join(atlasdir, maskname)
-            temp = nib.load(maskname)
-            mask = temp.get_data()
-            mask = np.asarray(mask, dtype=np.float16)
-
-            dim = ct.shape
-
-            ctt = PadImage(ct, padsize)
-            maskt = PadImage(mask, padsize)
-
-            invols = [ctt]
-
-            CTPatchesA, MaskPatchesA = get_patches(invols,
-                                                   maskt,
-                                                   patchsize,
-                                                   single_subject_num_patches,
-                                                   num_channels,
-                                                   ratio=healthy_ratio)
-
-            CTPatchesA = np.asarray(CTPatchesA, dtype=np.float16)
-            MaskPatchesA = np.asarray(MaskPatchesA, dtype=np.float16)
-
-            for ct_patch, mask_patch in zip(CTPatchesA, MaskPatchesA):
-                CTPatches[indices[cur_idx], :, :, :] = ct_patch
-                MaskPatches[indices[cur_idx], :, :, :] = mask_patch
-                cur_idx += 1
-
-            dim = CTPatchesA.shape
-            count2 = count1 + dim[0]
-            count1 = count1 + dim[0]
-
-        dim = (count2, patchsize[0], patchsize[1], int(1))
-
-        if linear_downscaling:
-            CTPatches /= np.max(CTPatches)
-            CTPatches[np.where(CTPatches < 0)] = 0
-
-        return (CTPatches, MaskPatches)
-"""

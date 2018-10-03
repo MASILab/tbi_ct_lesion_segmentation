@@ -2,7 +2,7 @@ import os
 import sys
 import numpy as np
 
-from utils import utils, patch_ops
+from utils import utils, patch_ops, save_args_to_csv
 from utils import preprocess
 
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
@@ -11,8 +11,7 @@ from keras.optimizers import Adam
 
 from models.multi_gpu import ModelMGPU
 from models.losses import *
-from models.dual_loss_inception import inception as dual_loss_inception
-from models.inception import inception
+from models.unet import unet
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -24,18 +23,24 @@ if __name__ == "__main__":
     NUM_GPUS = 1
 
     num_channels = results.num_channels
+    plane = results.plane
     num_epochs = 1000000
     num_patches = results.num_patches
     batch_size = results.batch_size
     model = results.model
-    experiment_details = results.experiment_details
+    model_architecture = "unet"
+    start_time = utils.now()
+    experiment_details = start_time + "_" + model_architecture + "_" +\
+            results.experiment_details
     loss = results.loss
     learning_rate = 1e-4
 
-    WEIGHT_DIR = os.path.join("models", "weights", experiment_details)
-    TB_LOG_DIR = os.path.join("models", "tensorboard", utils.now())
+    save_args_to_csv(results,"results", experiment_details) 
 
-    MODEL_NAME = "inception_model_" + experiment_details
+    WEIGHT_DIR = os.path.join("models", "weights", experiment_details)
+    TB_LOG_DIR = os.path.join("models", "tensorboard", start_time)
+
+    MODEL_NAME = model_architecture + "_model_" + experiment_details
     MODEL_PATH = os.path.join(WEIGHT_DIR, MODEL_NAME + ".json")
 
     # files and paths
@@ -48,27 +53,14 @@ if __name__ == "__main__":
     PATCH_SIZE = [int(x) for x in results.patch_size.split("x")]
 
     ######### MODEL AND CALLBACKS #########
-    # determine loss
-    if loss == "dice_coef":
-        loss = dice_coef_loss
-    elif loss == "bce":
-        loss = binary_crossentropy
-    elif loss == "tpr":
-        loss = true_positive_rate_loss
-    elif loss == "cdc":
-        loss = continuous_dice_coef_loss
-    else:
-        print("\nInvalid loss function.\n")
-        sys.exit()
-
     if not model:
-        model = inception(model_path=MODEL_PATH,
+        model = unet(model_path=MODEL_PATH,
                           num_channels=num_channels,
-                          loss=loss,
+                          loss=continuous_dice_coef_loss,
                           ds=4,
                           lr=learning_rate,
                           num_gpus=NUM_GPUS,
-                          verbose=0,)
+                          verbose=1,)
     else:
         print("Continuing training with", model)
         model = load_model(model, custom_objects=custom_losses)
@@ -76,7 +68,7 @@ if __name__ == "__main__":
     monitor = "val_dice_coef"
 
     # checkpoints
-    checkpoint_filename = str(utils.now()) +\
+    checkpoint_filename = str(start_time) +\
         "_epoch_{epoch:04d}_" +\
         monitor+"_{"+monitor+":.4f}_weights.hdf5"
 
@@ -111,6 +103,7 @@ if __name__ == "__main__":
     ######### DATA IMPORT #########
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
         atlasdir=PREPROCESSED_DIR,
+        plane=plane,
         patchsize=PATCH_SIZE,
         max_patch=num_patches,
         num_channels=num_channels)
@@ -128,3 +121,5 @@ if __name__ == "__main__":
                         verbose=1,
                         validation_split=0.2,
                         callbacks=callbacks_list,)
+
+    K.clear_session()

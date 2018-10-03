@@ -34,10 +34,16 @@ def save_slice(filename, ct_img_data, pred_mask_img_data, gt_mask_img_data, slic
         if slice_dice != 1 and best_dice < slice_dice:
             best_dice = slice_dice
             best_slice_idx = idx
+        else:
+            best_dice = 1
+            best_slice_idx = 0
 
         if slice_dice != 0 and worst_dice > slice_dice:
             worst_dice = slice_dice
             worst_slice_idx = idx
+        else:
+            worst_dice = 0
+            worst_slice_idx = 0
 
     for img_data in [ct_img_data, pred_mask_img_data, gt_mask_img_data]:
         best_slice = img_data[:,:,best_slice_idx]

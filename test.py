@@ -12,8 +12,10 @@ import os
 import numpy as np
 import nibabel as nib
 from utils import utils
+from utils import preprocess
 from utils.save_figures import *
-from utils.apply_model import apply_model, apply_model_single_input
+from utils.apply_model import apply_model_single_input
+from utils.pad import pad_image
 from keras.models import load_model
 from keras import backend as K
 from models.losses import *
@@ -25,16 +27,18 @@ if __name__ == "__main__":
     ######################## COMMAND LINE ARGUMENTS ########################
     results = utils.parse_args("validate")
     num_channels = results.num_channels
-    model_filename = results.weights
+
+    axial_model_filename = results.axial_weights
+    sagittal_model_filename = results.sagittal_weights
+    coronal_model_filename = results.coronal_weights
+
     thresh = results.threshold
-    experiment_name = model_filename.split(os.sep)[-2]
-    experiment_details = os.path.basename(model_filename)[:os.path.basename(model_filename)
-                                                          .find('.hdf5')]
+    experiment_name = axial_model_filename.split(os.sep)[-2]
+    util.save_args_to_csv(results, "results", experiment_name)
     DATA_DIR = results.VAL_DIR
 
     ######################## PREPROCESS TESTING DATA ########################
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
-    N4_SCRIPT_PATH = os.path.join("utils", "N4BiasFieldCorrection")
 
     PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessed")
     SEG_ROOT_DIR = os.path.join(DATA_DIR, "segmentations")
@@ -48,29 +52,32 @@ if __name__ == "__main__":
             os.makedirs(d)
 
     # Stats file
-    stat_filename = "result_" + experiment_details + ".csv"
+    stat_filename = "result_" + experiment_name + ".csv"
     STATS_FILE = os.path.join(STATS_DIR, stat_filename)
     DICE_METRICS_FILE = os.path.join(
-        STATS_DIR, "detailed_dice_" + experiment_details + ".csv")
+        STATS_DIR, "detailed_dice_" + experiment_name + ".csv")
+
+    ######################## LOAD MODEL ########################
+    axial_model = load_model(axial_model_filename,
+                             custom_objects=custom_losses)
+    if sagittal_model_filename and coronal_model_filename:
+        sagittal_model = load_model(
+            sagittal_model_filename, custom_objects=custom_losses)
+        coronal_model = load_model(
+            coronal_model_filename, custom_objects=custom_losses)
 
     ######################## PREPROCESSING ########################
     filenames = [x for x in os.listdir(DATA_DIR)
                  if not os.path.isdir((os.path.join(DATA_DIR, x)))]
     filenames.sort()
 
-    for filename in filenames:
-        final_preprocess_dir = utils.preprocess(filename,
-                                                DATA_DIR,
-                                                PREPROCESSING_DIR,
-                                                SKULLSTRIP_SCRIPT_PATH,
-                                                N4_SCRIPT_PATH)
-
-    ######################## LOAD MODEL ########################
-    model = load_model(model_filename, custom_objects=custom_losses)
+    preprocess.preprocess_dir(DATA_DIR,
+                              PREPROCESSING_DIR,
+                              SKULLSTRIP_SCRIPT_PATH)
 
     ######################## SEGMENT FILES ########################
-    filenames = [x for x in os.listdir(final_preprocess_dir)
-                 if not os.path.isdir(os.path.join(final_preprocess_dir, x))]
+    filenames = [x for x in os.listdir(PREPROCESSING_DIR)
+                 if not os.path.isdir(os.path.join(PREPROCESSING_DIR, x))]
     masks = [x for x in filenames if "mask" in x]
     filenames = [x for x in filenames if "CT" in x]
 
@@ -81,7 +88,10 @@ if __name__ == "__main__":
         print("Error, file missing. #CT:{}, #masks:{}".format(
             len(filenames), len(masks)))
 
-    print("Using model:", model_filename)
+    print("Using axial model:", axial_model_filename)
+    if sagittal_model_filename and coronal_model_filename:
+        print("Using sagittal model:", sagittal_model_filename)
+        print("Using coronal model:", coronal_model_filename)
 
     # used only for printing result
     mean_dice = 0
@@ -90,23 +100,24 @@ if __name__ == "__main__":
 
     for filename, mask in zip(filenames, masks):
         # load nifti file data
-        nii_obj = nib.load(os.path.join(final_preprocess_dir, filename))
+        nii_obj = nib.load(os.path.join(PREPROCESSING_DIR, filename))
         nii_img = nii_obj.get_data()
         header = nii_obj.header
         affine = nii_obj.affine
 
-        # reshape to account for implicit "1" channel
+        # pad and reshape to account for implicit "1" channel
+        target_dims = (512, 512, 64)
+        nii_img = pad_image(nii_img, target_dims)
         nii_img = np.reshape(nii_img, nii_img.shape + (1,))
 
-        '''
-        # TODO: experimenting with HU range
-        blood_HU_range = range(3, 86)
-        nii_img[np.invert(np.isin(nii_img, blood_HU_range))] = 0
-        '''
-
         # segment
-        #segmented_img = apply_model(nii_img, model)
-        segmented_img = apply_model_single_input(nii_img, model)
+        if sagittal_model_filename and coronal_model_filename:
+            segmented_img = apply_triplanar_models(nii_img,
+                                                   axial_model,
+                                                   sagittal_model,
+                                                   coronal_model)
+        else:
+            segmented_img = apply_model_single_input(nii_img, axial_model)
 
         # save resultant image
         segmented_filename = os.path.join(SEG_DIR, filename)
@@ -115,8 +126,9 @@ if __name__ == "__main__":
         nib.save(segmented_nii_obj, segmented_filename)
 
         # load mask file data
-        mask_obj = nib.load(os.path.join(final_preprocess_dir, mask))
+        mask_obj = nib.load(os.path.join(PREPROCESSING_DIR, mask))
         mask_img = mask_obj.get_data()
+        mask_img = pad_image(mask_img, target_dims)
 
         # write statistics to file
         print("Collecting stats...")
@@ -124,6 +136,7 @@ if __name__ == "__main__":
                                                                                segmented_nii_obj,
                                                                                mask_obj,
                                                                                STATS_FILE,
+                                                                               target_dims,
                                                                                thresh,)
 
         save_slice(filename,
@@ -142,7 +155,7 @@ if __name__ == "__main__":
 
         # Reorient back to original before comparisons
         print("Reorienting...")
-        utils.reorient(filename, final_preprocess_dir, SEG_DIR)
+        utils.reorient(filename, PREPROCESSING_DIR, SEG_DIR)
 
         # get probability volumes and threshold image
         print("Thresholding...")

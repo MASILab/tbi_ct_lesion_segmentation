@@ -3,6 +3,7 @@ from urllib.request import urlopen
 
 from .skullstrip import skullstrip
 from .reorient import orient, reorient
+from .pad import pad_image
 
 import os
 import argparse
@@ -16,6 +17,25 @@ from tqdm import tqdm
 import random
 import copy
 import csv
+
+def save_args_to_csv(args_obj, out_dir):
+    '''
+    Saves arguments to a csv for future reference
+
+    args_obj: argparse object, collected after running parse_args
+    out_dir: string, path where to save the csv file
+    '''
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    out_file = os.path.join(out_dir, "script_arguments.csv")
+    with open(out_file, 'wb') as f:
+        writer = csv.writer(f, delimiter=',')
+        writer.writerow(["Argument", "Value"])
+
+        for arg in vars(args):
+            writer.writerow([arg, getatr(args, arg)])
 
 
 def preprocess(filename, src_dir, preprocess_root_dir, skullstrip_script_path, n4_script_path,
@@ -74,6 +94,10 @@ def parse_args(session):
         parser.add_argument('--datadir', required=True, action='store', dest='SRC_DIR',
                             help='Where the initial unprocessed data is. See readme for\
                                     further information')
+        parser.add_argument('--plane', required=False, action='store', dest='plane',
+                            default='axial', type=str,
+                            help='Which plane to train the model on. Default is axial. \
+                                    Other options are only "sagittal" or "coronal".')
         parser.add_argument('--psize', required=True, action='store', dest='patch_size',
                             help='Patch size, eg: 45x45. Patch sizes are separated by x\
                                     and in voxels')
@@ -107,8 +131,15 @@ def parse_args(session):
     elif session == "validate":
         parser.add_argument('--datadir', required=True, action='store', dest='VAL_DIR',
                             help='Where the initial unprocessed data is')
-        parser.add_argument('--weights', required=True, action='store', dest='weights',
-                            help='Learnt weights (.hdf5) file')
+        parser.add_argument('--axial_weights', required=True, action='store', 
+                            dest='axial_weights',
+                            help='Learnt weights on axial plane (.hdf5) file')
+        parser.add_argument('--sagittal_weights', required=False, action='store', 
+                            dest='sagittal_weights', default=None,
+                            help='Learnt weights on sagittal plane (.hdf5) file')
+        parser.add_argument('--coronal_weights', required=False, action='store', 
+                            dest='coronal_weights', default=None,
+                            help='Learnt weights on coronal plane (.hdf5) file')
         parser.add_argument('--threshold', required=False, action='store', dest='threshold',
                             type=float, default=0.5,
                             help='Scalar in [0,1] to use as binarizing threshold.')
@@ -221,7 +252,7 @@ def dice_metric(A, B):
     return 2.0 * intersection / union
 
 
-def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
+def write_stats(filename, nii_obj, nii_obj_gt, stats_file, target_dims, threshold=0.5):
     '''
     Writes to csv probability volumes and thresholded volumes.
 
@@ -230,11 +261,16 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
         - nii_obj: nifti object, segmented CT
         - nii_obj_gt: nifti object, ground truth segmentation
         - stats_file: string, path and filename of .csv file to hold statistics
+        - target_dims: tuple of ints, target size to pad to
     '''
     SEVERE_HEMATOMA = 25000  # in mm^3
 
     # get ground truth severity
     img_data_gt = nii_obj_gt.get_data()
+
+    # pad ground truth
+    img_data_gt = pad_image(img_data_gt, target_dims)
+
     zooms_gt = nii_obj_gt.header.get_zooms()
     scaling_factor_gt = zooms_gt[0] * zooms_gt[1] * zooms_gt[2]
 
@@ -269,6 +305,8 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
 
     # load object tensor for calculations
     img_data = nii_obj.get_data()[:, :, :]
+    img_data = pad_image(img_data, target_dims)
+
     zooms = nii_obj.header.get_zooms()
     scaling_factor = zooms[0] * zooms[1] * zooms[2]
 

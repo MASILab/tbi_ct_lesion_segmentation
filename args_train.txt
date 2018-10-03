@@ -1,1 +1,1 @@
---datadir data/train --psize 125x125 --batch_size 64 --num_patches 1000 --num_channels 1 --loss cdc --experiment_details 180917_cdc_vumc_ssl
+--datadir data/train --psize 128x128 --batch_size 128 --num_patches 1000 --num_channels 1 --loss cdc --experiment_details cdc_vumc_ssl
