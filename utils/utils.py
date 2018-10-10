@@ -138,6 +138,12 @@ def parse_args(session):
         parser.add_argument('--threshold', required=False, action='store', dest='threshold',
                             type=float, default=0.5,
                             help='Scalar in [0,1] to use as binarizing threshold.')
+    elif session == "multiseg":
+        parser.add_argument('--datadir', required=True, action='store', dest='DATA_DIR',
+                            help='Where the initial unprocessed data is')
+        parser.add_argument('--weights', required=True, action='store', 
+                            dest='weights',
+                            help='Learnt weights on axial plane (.hdf5) file')
     else:
         print("Invalid session. Must be one of \"train\", \"validate\", or \"test\"")
         sys.exit()
