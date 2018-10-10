@@ -127,21 +127,14 @@ def parse_args(session):
                             help='Model Architecture (.json) file')
         parser.add_argument('--weights', required=True, action='store', dest='weights',
                             help='Learnt weights (.hdf5) file')
-        parser.add_argument('--result_dst', required=True, action='store', dest='OUTFILE',
-                            help='Output filename (e.g. result.csv) to where the results\
-                                    are written')
+        parser.add_argument('--segdir', required=True, action='store', dest='segdir',
+                            help='Directory in which to place segmentations')
     elif session == "validate":
         parser.add_argument('--datadir', required=True, action='store', dest='VAL_DIR',
                             help='Where the initial unprocessed data is')
-        parser.add_argument('--axial_weights', required=True, action='store', 
-                            dest='axial_weights',
+        parser.add_argument('--weights', required=True, action='store', 
+                            dest='weights',
                             help='Learnt weights on axial plane (.hdf5) file')
-        parser.add_argument('--sagittal_weights', required=False, action='store', 
-                            dest='sagittal_weights', default=None,
-                            help='Learnt weights on sagittal plane (.hdf5) file')
-        parser.add_argument('--coronal_weights', required=False, action='store', 
-                            dest='coronal_weights', default=None,
-                            help='Learnt weights on coronal plane (.hdf5) file')
         parser.add_argument('--threshold', required=False, action='store', dest='threshold',
                             type=float, default=0.5,
                             help='Scalar in [0,1] to use as binarizing threshold.')

@@ -11,6 +11,7 @@ Input images should simply be the raw CT scans.
 import os
 import numpy as np
 import nibabel as nib
+import shutil
 from utils import utils
 from utils import preprocess
 from utils.save_figures import *
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     ######################## FOLDER SETUP ########################
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
 
-    DATA_DIR = "testing_single_segs"
+    DATA_DIR = results.segdir
 
     PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessed")
     SEG_ROOT_DIR = os.path.join(DATA_DIR, "segmentations")
@@ -113,7 +114,7 @@ if __name__ == "__main__":
 
     # Reorient back to original before comparisons
     print("Reorienting...")
-    utils.reorient(filename, PREPROCESSING_DIR, SEG_DIR)
+    utils.reorient(filename, src_dir, SEG_DIR)
 
     # get probability volumes and threshold image
     print("Thresholding...")
@@ -145,5 +146,7 @@ if __name__ == "__main__":
         print("DICE: {:.3f}".format(cur_vol_dice))
 
 
+    if os.path.exists(TMPDIR):
+        shutil.rmtree(TMPDIR)
 
-K.clear_session()
+    K.clear_session()

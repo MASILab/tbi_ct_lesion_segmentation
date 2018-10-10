@@ -58,8 +58,19 @@ Example usage:
 
 Run `segment.py` to classify a single image with some desired arguments:
 
-{TODO}
+`--infile`: Path to where the unprocessed single image volume is
 
+`--inmask`: (OPTIONAL) Path to where the manually created binary mask volume is
+
+`--weights`: path to the trained model weights (.hdf5) to use
+
+`--segdir`: Path to directory in which segmentations will be placed.
+
+Example usage:
+`python validate.py --infile my_data/my_first_image.nii.gz --inmask mydata/my_first_image_mask.nii.gz --weights my_weighs.hdf5 --segdir my_segmentation_dir`
+
+Example usage if manual mask is unavailable:
+`python validate.py --infile my_data/my_first_image.nii.gz --weights my_weighs.hdf5 --segdir my_segmentation_dir`
 
 ### Test 
 
@@ -67,7 +78,7 @@ Run `test.py` to validate the model on some holdout data for which the ground tr
 
 `--datadir`: Path to where the unprocessed data is
 
-`--axial_weights`: path to the trained model weights (.hdf5) to use
+`--weights`: path to the trained model weights (.hdf5) to use
 
 Example usage:
 `python validate.py --datadir data/test/ --weights models/weights/my_experiment/my_weights.hdf5`

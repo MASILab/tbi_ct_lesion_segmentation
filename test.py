@@ -41,12 +41,10 @@ if __name__ == "__main__":
         os.environ["CUDA_VISIBLE_DEVICES"] = str(results.GPUID)
 
 
-    axial_model_filename = results.axial_weights
-    sagittal_model_filename = results.sagittal_weights
-    coronal_model_filename = results.coronal_weights
+    model_filename = results.weights
 
     thresh = results.threshold
-    experiment_name = axial_model_filename.split(os.sep)[-2]
+    experiment_name = model_filename.split(os.sep)[-2]
     utils.save_args_to_csv(results, os.path.join("results", experiment_name))
 
     DATA_DIR = results.VAL_DIR
@@ -72,13 +70,8 @@ if __name__ == "__main__":
         STATS_DIR, "detailed_dice_" + experiment_name + ".csv")
 
     ######################## LOAD MODEL ########################
-    axial_model = load_model(axial_model_filename,
+    model = load_model(model_filename,
                              custom_objects=custom_losses)
-    if sagittal_model_filename and coronal_model_filename:
-        sagittal_model = load_model(
-            sagittal_model_filename, custom_objects=custom_losses)
-        coronal_model = load_model(
-            coronal_model_filename, custom_objects=custom_losses)
 
     ######################## PREPROCESSING ########################
     filenames = [x for x in os.listdir(DATA_DIR)
@@ -102,10 +95,7 @@ if __name__ == "__main__":
         print("Error, file missing. #CT:{}, #masks:{}".format(
             len(filenames), len(masks)))
 
-    print("Using axial model:", axial_model_filename)
-    if sagittal_model_filename and coronal_model_filename:
-        print("Using sagittal model:", sagittal_model_filename)
-        print("Using coronal model:", coronal_model_filename)
+    print("Using model:", model_filename)
 
     # used only for printing result
     mean_dice = 0
@@ -120,18 +110,10 @@ if __name__ == "__main__":
         affine = nii_obj.affine
 
         # pad and reshape to account for implicit "1" channel
-        target_dims = (512, 512, 64)
-        nii_img = pad_image(nii_img, target_dims)
         nii_img = np.reshape(nii_img, nii_img.shape + (1,))
 
         # segment
-        if sagittal_model_filename and coronal_model_filename:
-            segmented_img = apply_triplanar_models(nii_img,
-                                                   axial_model,
-                                                   sagittal_model,
-                                                   coronal_model)
-        else:
-            segmented_img = apply_model_single_input(nii_img, axial_model)
+        segmented_img = apply_model_single_input(nii_img, model)
 
         # save resultant image
         segmented_filename = os.path.join(SEG_DIR, filename)
@@ -142,7 +124,6 @@ if __name__ == "__main__":
         # load mask file data
         mask_obj = nib.load(os.path.join(PREPROCESSING_DIR, mask))
         mask_img = mask_obj.get_data()
-        mask_img = pad_image(mask_img, target_dims)
 
         # write statistics to file
         print("Collecting stats...")
@@ -150,7 +131,6 @@ if __name__ == "__main__":
                                                                                segmented_nii_obj,
                                                                                mask_obj,
                                                                                STATS_FILE,
-                                                                               target_dims,
                                                                                thresh,)
 
         save_slice(filename,
@@ -169,7 +149,7 @@ if __name__ == "__main__":
 
         # Reorient back to original before comparisons
         print("Reorienting...")
-        utils.reorient(filename, PREPROCESSING_DIR, SEG_DIR)
+        utils.reorient(filename, DATA_DIR, SEG_DIR)
 
         # get probability volumes and threshold image
         print("Thresholding...")
@@ -189,4 +169,4 @@ if __name__ == "__main__":
         f.write("Dice: {:.4f}\nVolume Correlation: {:.4f}".format(
             mean_dice, corr))
 
-K.clear_session()
+    K.clear_session()
