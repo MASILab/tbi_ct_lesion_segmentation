@@ -120,7 +120,9 @@ def parse_args(session):
                             help='Maximum allowed number of patches. Default is all possible.')
     elif session == "test":
         parser.add_argument('--infile', required=True, action='store', dest='INFILE',
-                            help='Image to classify')
+                            help='Image to segment')
+        parser.add_argument('--inmask', required=False, action='store', dest='INMASK',
+                            help='Manual mask')
         parser.add_argument('--model', required=True, action='store', dest='model',
                             help='Model Architecture (.json) file')
         parser.add_argument('--weights', required=True, action='store', dest='weights',
@@ -258,7 +260,7 @@ def dice_metric(A, B):
     return 2.0 * intersection / union
 
 
-def write_stats(filename, nii_obj, nii_obj_gt, stats_file, target_dims, threshold=0.5):
+def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
     '''
     Writes to csv probability volumes and thresholded volumes.
 
@@ -267,7 +269,6 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, target_dims, threshol
         - nii_obj: nifti object, segmented CT
         - nii_obj_gt: nifti object, ground truth segmentation
         - stats_file: string, path and filename of .csv file to hold statistics
-        - target_dims: tuple of ints, target size to pad to
     '''
     SEVERE_HEMATOMA = 25000  # in mm^3
 
@@ -275,7 +276,7 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, target_dims, threshol
     img_data_gt = nii_obj_gt.get_data()
 
     # pad ground truth
-    img_data_gt = pad_image(img_data_gt, target_dims)
+    #img_data_gt = pad_image(img_data_gt, target_dims)
 
     zooms_gt = nii_obj_gt.header.get_zooms()
     scaling_factor_gt = zooms_gt[0] * zooms_gt[1] * zooms_gt[2]
@@ -311,7 +312,7 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, target_dims, threshol
 
     # load object tensor for calculations
     img_data = nii_obj.get_data()[:, :, :]
-    img_data = pad_image(img_data, target_dims)
+    #img_data = pad_image(img_data, target_dims)
 
     zooms = nii_obj.header.get_zooms()
     scaling_factor = zooms[0] * zooms[1] * zooms[2]
