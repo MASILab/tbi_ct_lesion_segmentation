@@ -275,7 +275,7 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
     img_data_gt = nii_obj_gt.get_data()
 
     # pad ground truth
-    #img_data_gt = pad_image(img_data_gt, target_dims)
+    img_data_gt = pad_image(img_data_gt)
 
     zooms_gt = nii_obj_gt.header.get_zooms()
     scaling_factor_gt = zooms_gt[0] * zooms_gt[1] * zooms_gt[2]
@@ -311,7 +311,7 @@ def write_stats(filename, nii_obj, nii_obj_gt, stats_file, threshold=0.5):
 
     # load object tensor for calculations
     img_data = nii_obj.get_data()[:, :, :]
-    #img_data = pad_image(img_data, target_dims)
+    img_data = pad_image(img_data)
 
     zooms = nii_obj.header.get_zooms()
     scaling_factor = zooms[0] * zooms[1] * zooms[2]
