@@ -146,6 +146,11 @@ def parse_args(session):
         parser.add_argument('--weights', required=True, action='store', 
                             dest='weights',
                             help='Learnt weights on axial plane (.hdf5) file')
+    elif session == "calc_dice":
+        parser.add_argument('--gt_dir', required=True, action='store', dest='GT_DATA_DIR',
+                            help='Where the manual masks are')
+        parser.add_argument('--indata', required=True, action='store', dest='IN_DATA',
+                            help='Predicted data, either a file or directory')
     else:
         print("Invalid session. Must be one of \"train\", \"validate\", or \"test\"")
         sys.exit()
