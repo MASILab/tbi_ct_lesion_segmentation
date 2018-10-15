@@ -178,6 +178,7 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
                                               J - dsize[1]: J + dsize[1] + 1,
                                               K]
             '''
+
             # trying even-sided patches
             CTPatches[i, :, :, c] = invols[c][I - dsize[0]: I + dsize[0],
                                               J - dsize[1]: J + dsize[1],
@@ -280,12 +281,17 @@ def CreatePatchesForTraining(atlasdir, plane, patchsize, max_patch=150000, num_c
         mask = temp.get_data()
         mask = np.asarray(mask, dtype=np.float16)
 
-        #ct = PadImage(ct, padsize)
-        #mask = PadImage(mask, padsize)
 
-        target_dims = (512*2, 512*2, 64)
-        ct = pad_image(ct, target_dims)
-        mask = pad_image(mask, target_dims)
+        #target_dims = (512*2, 512*2, 64)
+
+        # here, need to ensure that the CT and mask tensors
+        # are padded out to larger than the size of the requested
+        # patches, to allow for patches to be gathered from edges
+        ct = PadImage(ct, padsize)
+        mask = PadImage(mask, padsize)
+
+        #ct = pad_image(ct)
+        #mask = pad_image(mask)
 
         ct = np.transpose(ct, axes=planar_code)
         mask = np.transpose(mask, axes=planar_code)

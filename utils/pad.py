@@ -1,6 +1,16 @@
 import numpy as np
 
-def pad_image(img_data, target_dims):
+def pad_image(img_data):
+    '''
+    Pads the image to the nearest greater multiple of 16.
+    This is due to the downsample/upsample count in the Unet.
+    '''
+
+    # pad to nearest greater multiple of 2**NUM_DOWNSAMPLES
+    NUM_DOWNSAMPLES = 4
+    scaling = 2**NUM_DOWNSAMPLES
+    target_dims = [int(np.ceil(x/scaling)) * scaling for x in img_data.shape]
+
     left_pad = round(float(target_dims[0] - img_data.shape[0]) / 2)
     right_pad = round(float(target_dims[0] - img_data.shape[0]) - left_pad)
     top_pad = round(float(target_dims[1] - img_data.shape[1]) / 2)
