@@ -222,7 +222,7 @@ def CreatePatchesForTraining(atlasdir, plane, patchsize, max_patch=150000, num_c
     numatlas = len(ct_names)
 
     patchsize = np.asarray(patchsize, dtype=int)
-    padsize = np.max(patchsize + 1) / 2
+    padsize = np.max(patchsize + 1)# / 2
 
     # calculate total number of voxels for all images to pre-allocate array
     f = 0
@@ -281,17 +281,11 @@ def CreatePatchesForTraining(atlasdir, plane, patchsize, max_patch=150000, num_c
         mask = temp.get_data()
         mask = np.asarray(mask, dtype=np.float16)
 
-
-        #target_dims = (512*2, 512*2, 64)
-
         # here, need to ensure that the CT and mask tensors
         # are padded out to larger than the size of the requested
         # patches, to allow for patches to be gathered from edges
         ct = PadImage(ct, padsize)
         mask = PadImage(mask, padsize)
-
-        #ct = pad_image(ct)
-        #mask = pad_image(mask)
 
         ct = np.transpose(ct, axes=planar_code)
         mask = np.transpose(mask, axes=planar_code)
