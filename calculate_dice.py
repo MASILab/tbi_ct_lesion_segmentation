@@ -1,11 +1,7 @@
 '''
 Author: Samuel Remedios
 
-Use of this script involves:
-    - set SRC_DIR to point to the directory holding all images
-    - ensure this script sits at the top level in directory, alongside data/
-
-Input images should simply be the raw CT scans.
+TODO: make this work 
 
 '''
 import os
@@ -68,13 +64,6 @@ if __name__ == "__main__":
                                                                                        pred_obj,
                                                                                        gt_obj,
                                                                                        STATS_FILE)
-
-                save_slice(filename,
-                           nii_img[:, :, :, 0],
-                           segmented_img,
-                           mask_img,
-                           cur_slices_dice,
-                           FIGURES_DIR)
 
                 utils.write_dice_scores(filename, cur_vol_dice,
                                         cur_slices_dice, DICE_METRICS_FILE)
