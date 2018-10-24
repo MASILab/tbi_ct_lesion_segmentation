@@ -3,7 +3,7 @@ data/
 models/weights/
 models/tensorboard
 results/
-args_train.txt
+**/args_train.txt
 
 **/results/*
 
