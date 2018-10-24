@@ -293,10 +293,11 @@ def CreatePatchesForTraining(atlasdir, plane, patchsize, max_patch=150000, num_c
         invols = [ct]  # can handle multichannel here
 
         # adjusting patch size after transpose
-        if ct.shape[0] < ct.shape[1]:
-            patchsize = (ct.shape[0]//4, patchsize[1])
-        if ct.shape[1] < ct.shape[0]:
-            patchsize = (patchsize[0], ct.shape[1]//4)
+        if planar_code != planar_codes["axial"]:
+            if ct.shape[0] < ct.shape[1]:
+                patchsize = (ct.shape[0]//4, patchsize[1])
+            if ct.shape[1] < ct.shape[0]:
+                patchsize = (patchsize[0], ct.shape[1]//4)
         patchsize = np.asarray(patchsize, dtype=int)
 
         CTPatchesA, MaskPatchesA = get_patches(invols,
