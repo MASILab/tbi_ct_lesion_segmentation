@@ -1,6 +1,7 @@
-import os
-import sys
 import numpy as np
+import os
+from subprocess import Popen, PIPE
+import sys
 
 from utils import utils, patch_ops
 from utils import preprocess
