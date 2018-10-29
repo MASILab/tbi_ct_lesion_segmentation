@@ -5,6 +5,8 @@ models/tensorboard
 results/
 **/args_train.txt
 
+**/host_id.cfg
+
 **/nihvandy/*
 **/connect_to_nihvandy.sh
 
