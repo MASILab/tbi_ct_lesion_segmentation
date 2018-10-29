@@ -43,16 +43,17 @@ if __name__ == "__main__":
     model_architecture = "unet"
     start_time = utils.now()
     experiment_details = start_time + + "_" + model_architecture + "_" +\
-            results.experiment_details
+        results.experiment_details
     loss = results.loss
     learning_rate = 1e-4
 
-    utils.save_args_to_csv(results, os.path.join("results", experiment_details))
+    utils.save_args_to_csv(results, os.path.join(
+        "results", experiment_details))
 
     MOUNT_POINT = os.path.join("..", "nihvandy", "ct_seg")
     LOGFILE = os.path.join(MOUNT_POINT, "multisite_training_log.txt")
     WEIGHT_DIR = os.path.join(MOUNT_POINT,
-                              "models", 
+                              "models",
                               "msl_weights",
                               experiment_details)
     TB_LOG_DIR = os.path.join(MOUNT_POINT, "models", "tensorboard", start_time)
@@ -76,7 +77,6 @@ if __name__ == "__main__":
         .split()
     if not os.path.exists(LOGFILE):
         os.system("touch" + " " + LOGFILE)
-
 
     ########### PREPROCESS TRAINING DATA ##########
 
@@ -145,12 +145,12 @@ if __name__ == "__main__":
             existing_weights.sort()
 
             model = unet(model_path=MODEL_PATH,
-                              num_channels=num_channels,
-                              loss=continuous_dice_coef_loss,
-                              ds=2,
-                              lr=learning_rate,
-                              num_gpus=NUM_GPUS,
-                              verbose=1,)
+                         num_channels=num_channels,
+                         loss=continuous_dice_coef_loss,
+                         ds=2,
+                         lr=learning_rate,
+                         num_gpus=NUM_GPUS,
+                         verbose=1,)
 
             if len(existing_weights) != 0:
                 prev_weights = os.path.join(WEIGHT_DIR, existing_weights[-1])
