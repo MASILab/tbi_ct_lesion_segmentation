@@ -1,9 +1,11 @@
-import os
-import sys
 import numpy as np
+import os
+from subprocess import Popen, PIPE
+import sys
 import time
 
 from utils import utils, patch_ops, logger
+from utils import preprocess
 
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping, ReduceLROnPlateau
 from keras.models import load_model
@@ -11,8 +13,7 @@ from keras.optimizers import Adam
 
 from models.multi_gpu import ModelMGPU
 from models.losses import *
-from models.dual_loss_inception import inception as dual_loss_inception
-from models.inception import inception
+from models.unet import unet
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -21,26 +22,43 @@ if __name__ == "__main__":
 
     results = utils.parse_args("train")
 
-    NUM_GPUS = 2
+    NUM_GPUS = 1
+    if results.GPUID == None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    elif results.GPUID == -1:
+        # find maximum number of available GPUs
+        call = "nvidia-smi --list-gpus"
+        pipe = Popen(call, shell=True, stdout=PIPE).stdout
+        available_gpus = pipe.read().decode().splitlines()
+        NUM_GPUS = len(available_gpus)
+    else:
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(results.GPUID)
 
     num_channels = results.num_channels
+    plane = results.plane
     num_epochs = 1000000
-    num_patches = results.num_patches  # 508257
+    num_patches = results.num_patches
     batch_size = results.batch_size
     model = results.model
-    experiment_details = results.experiment_details
+    model_architecture = "unet"
+    start_time = utils.now()
+    experiment_details = start_time + + "_" + model_architecture + "_" +\
+            results.experiment_details
     loss = results.loss
     learning_rate = 1e-4
+
+    utils.save_args_to_csv(results, os.path.join("results", experiment_details))
 
     MOUNT_POINT = os.path.join("..", "nihvandy", "ct_seg")
     LOGFILE = os.path.join(MOUNT_POINT, "multisite_training_log.txt")
     WEIGHT_DIR = os.path.join(MOUNT_POINT,
-                              "interleaved_weights",
+                              "models", 
+                              "msl_weights",
                               experiment_details)
-    TB_LOG_DIR = os.path.join(MOUNT_POINT, "tensorboard", utils.now())
+    TB_LOG_DIR = os.path.join(MOUNT_POINT, "models", "tensorboard", start_time)
     THIS_COMPUTER = open("host_id.cfg").read().split()[0]
 
-    MODEL_NAME = "inception_model_" + experiment_details
+    MODEL_NAME = model_architecture + "_model_" + experiment_details
     MODEL_PATH = os.path.join(WEIGHT_DIR, MODEL_NAME + ".json")
 
     # files and paths
@@ -59,20 +77,6 @@ if __name__ == "__main__":
     if not os.path.exists(LOGFILE):
         os.system("touch" + " " + LOGFILE)
 
-    ######### MODEL AND CALLBACKS #########
-
-    # determine loss
-    if loss == "dice_coef":
-        loss = dice_coef_loss
-    elif loss == "bce":
-        loss = binary_crossentropy
-    elif loss == "tpr":
-        loss = true_positive_rate_loss
-    elif loss == "cdc":
-        loss = continuous_dice_coef_loss
-    else:
-        print("\nInvalid loss function.\n")
-        sys.exit()
 
     ########### PREPROCESS TRAINING DATA ##########
 
@@ -88,6 +92,7 @@ if __name__ == "__main__":
 
     ct_patches, mask_patches = patch_ops.CreatePatchesForTraining(
         atlasdir=PREPROCESSED_DIR,
+        plane=plane,
         patchsize=PATCH_SIZE,
         max_patch=num_patches,
         num_channels=num_channels)
@@ -139,10 +144,10 @@ if __name__ == "__main__":
             existing_weights = os.listdir(WEIGHT_DIR)
             existing_weights.sort()
 
-            model = inception(model_path=MODEL_PATH,
+            model = unet(model_path=MODEL_PATH,
                               num_channels=num_channels,
-                              loss=loss,
-                              ds=4,
+                              loss=continuous_dice_coef_loss,
+                              ds=2,
                               lr=learning_rate,
                               num_gpus=NUM_GPUS,
                               verbose=1,)
@@ -155,7 +160,7 @@ if __name__ == "__main__":
             ########## CALLBACKS ##########
             # checkpoints
             monitor = "val_dice_coef"
-            checkpoint_filename = str(utils.now()) +
+            checkpoint_filename = str(start_time) +
                 "_" +
                 monitor +
                 "_{" + monitor + ":.4f}_weights.hdf5"
@@ -170,15 +175,7 @@ if __name__ == "__main__":
             # tensorboard
             tb = TensorBoard(log_dir=TB_LOG_DIR)
 
-            '''
-            # early stopping
-            es = EarlyStopping(monitor="val_loss",
-                               min_delta=1e-4,
-                               patience=10,
-                               verbose=1,
-                               mode='auto')
-            '''
-
+            callbacks_list = [checkpoint, tb]
             ########## FIT MODEL ##########
             history = model.fit(ct_patches,
                                 mask_patches,
@@ -186,7 +183,7 @@ if __name__ == "__main__":
                                 epochs=1,
                                 verbose=1,
                                 validation_split=0.2,
-                                callbacks=[checkpoint, tb],)
+                                callbacks=callbacks_list)
 
             cur_loss = history.history['val_loss'][-1]
 
