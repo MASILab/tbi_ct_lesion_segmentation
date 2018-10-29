@@ -129,12 +129,10 @@ if __name__ == "__main__":
         cur_pos = ROUND_ROBIN_ORDER.index(most_recent)
 
         # debug print statements
-        '''
         print("Order:", ROUND_ROBIN_ORDER)
         print("cur_pos:", cur_pos)
         print("thiscomp:", THIS_COMPUTER)
         print("calc:", ROUND_ROBIN_ORDER[(cur_pos+1) % len(ROUND_ROBIN_ORDER)])
-        '''
 
         cur_host_turn = ROUND_ROBIN_ORDER[(
             cur_pos+1) % len(ROUND_ROBIN_ORDER)] == THIS_COMPUTER
