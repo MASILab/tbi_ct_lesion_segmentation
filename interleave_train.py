@@ -71,8 +71,8 @@ if __name__ == "__main__":
     PATCH_SIZE = [int(x) for x in results.patch_size.split("x")]
 
     # multi site ordering
-    ROUND_ROBIN_ORDER = open(os.path.join(MOUNT_POINT, "round_robin.cfg"))
-        .read()
+    ROUND_ROBIN_ORDER = open(os.path.join(MOUNT_POINT, "round_robin.cfg"))\
+        .read()\
         .split()
     if not os.path.exists(LOGFILE):
         os.system("touch" + " " + LOGFILE)
