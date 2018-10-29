@@ -50,7 +50,7 @@ if __name__ == "__main__":
     utils.save_args_to_csv(results, os.path.join(
         "results", experiment_details))
 
-    MOUNT_POINT = os.path.join("..", "nihvandy", "ct_seg")
+    MOUNT_POINT = os.path.join("nihvandy", "ct_seg")
     LOGFILE = os.path.join(MOUNT_POINT, "multisite_training_log.txt")
     WEIGHT_DIR = os.path.join(MOUNT_POINT,
                               "models",
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     PREPROCESSED_DIR = os.path.join(DATA_DIR, "preprocessed")
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
 
-    preprocess_dir(DATA_DIR,
+    preprocess.preprocess_dir(DATA_DIR,
                    PREPROCESSED_DIR,
                    SKULLSTRIP_SCRIPT_PATH)
 
