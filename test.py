@@ -11,6 +11,8 @@ Input images should simply be the raw CT scans.
 import os
 import numpy as np
 import nibabel as nib
+from subprocess import Popen, PIPE
+
 from utils import utils
 from utils import preprocess
 from utils.save_figures import *
