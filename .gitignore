@@ -5,6 +5,8 @@ models/tensorboard
 results/
 **/args_train.txt
 
+**/nihvandy/*
+
 **/results/*
 
 **/*.swp
