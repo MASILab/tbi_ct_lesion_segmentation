@@ -6,6 +6,7 @@ results/
 **/args_train.txt
 
 **/nihvandy/*
+**/connect_to_nihvandy.sh
 
 **/results/*
 
