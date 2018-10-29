@@ -42,7 +42,7 @@ if __name__ == "__main__":
     model = results.model
     model_architecture = "unet"
     start_time = utils.now()
-    experiment_details = start_time + + "_" + model_architecture + "_" +\
+    experiment_details = start_time + "_" + model_architecture + "_" +\
         results.experiment_details
     loss = results.loss
     learning_rate = 1e-4
@@ -160,9 +160,7 @@ if __name__ == "__main__":
             ########## CALLBACKS ##########
             # checkpoints
             monitor = "val_dice_coef"
-            checkpoint_filename = str(start_time) +
-                "_" +
-                monitor +
+            checkpoint_filename = str(start_time) + "_" + monitor +\
                 "_{" + monitor + ":.4f}_weights.hdf5"
 
             checkpoint_filename = os.path.join(WEIGHT_DIR, checkpoint_filename)
