@@ -158,7 +158,7 @@ if __name__ == "__main__":
             ########## CALLBACKS ##########
             # checkpoints
             monitor = "val_dice_coef"
-            checkpoint_filename = str(start_time) + "_" + monitor +\
+            checkpoint_filename = str(utils.now()) + "_" + monitor +\
                 "_{" + monitor + ":.4f}_weights.hdf5"
 
             checkpoint_filename = os.path.join(WEIGHT_DIR, checkpoint_filename)
@@ -166,7 +166,7 @@ if __name__ == "__main__":
                                          monitor='val_loss',
                                          save_best_only=False,
                                          mode='auto',
-                                         verbose=0,)
+                                         verbose=1,)
 
             # tensorboard
             tb = TensorBoard(log_dir=TB_LOG_DIR)
