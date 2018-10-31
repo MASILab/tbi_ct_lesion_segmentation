@@ -42,7 +42,7 @@ if __name__ == "__main__":
     model = results.model
     model_architecture = "unet"
     start_time = utils.now()
-    experiment_details = start_time + "_" + model_architecture + "_" +\
+    experiment_details = model_architecture + "_" +\
         results.experiment_details
     loss = results.loss
     learning_rate = 1e-4
