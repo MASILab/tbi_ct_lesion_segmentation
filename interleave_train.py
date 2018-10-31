@@ -139,7 +139,7 @@ if __name__ == "__main__":
 
         if cur_host_turn:
 
-            existing_weights = os.listdir(WEIGHT_DIR)
+            existing_weights = [x for x in os.listdir(WEIGHT_DIR) if 'hdf5' in x]
             existing_weights.sort()
 
             model = unet(model_path=MODEL_PATH,
