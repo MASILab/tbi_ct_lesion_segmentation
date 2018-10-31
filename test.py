@@ -42,7 +42,6 @@ if __name__ == "__main__":
     else:
         os.environ["CUDA_VISIBLE_DEVICES"] = str(results.GPUID)
 
-
     model_filename = results.weights
 
     thresh = results.threshold
@@ -73,7 +72,7 @@ if __name__ == "__main__":
 
     ######################## LOAD MODEL ########################
     model = load_model(model_filename,
-                             custom_objects=custom_losses)
+                       custom_objects=custom_losses)
 
     ######################## PREPROCESSING ########################
     filenames = [x for x in os.listdir(DATA_DIR)
@@ -113,10 +112,16 @@ if __name__ == "__main__":
 
         # pad and reshape to account for implicit "1" channel
         nii_img = np.reshape(nii_img, nii_img.shape + (1,))
+        orig_shape = nii_img.shape
         nii_img = pad_image(nii_img)
 
         # segment
         segmented_img = apply_model_single_input(nii_img, model)
+        pred_shape = segmented_img.shape
+
+        # crop off the padding
+        diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-1])/2)
+        segmented_img = segmented_img[:, :, diff_num_slices:-diff_num_slices]
 
         # save resultant image
         segmented_filename = os.path.join(SEG_DIR, filename)
