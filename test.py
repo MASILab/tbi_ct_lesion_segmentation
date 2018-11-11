@@ -119,15 +119,9 @@ if __name__ == "__main__":
         segmented_img = apply_model_single_input(nii_img, model)
         pred_shape = segmented_img.shape
 
-        # crop off the padding
-        diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-1])/2)
-        segmented_img = segmented_img[:, :, diff_num_slices:-diff_num_slices]
-
-        # save resultant image
-        segmented_filename = os.path.join(SEG_DIR, filename)
+        # create nii obj
         segmented_nii_obj = nib.Nifti1Image(
             segmented_img, affine=affine, header=header)
-        nib.save(segmented_nii_obj, segmented_filename)
 
         # load mask file data
         mask_obj = nib.load(os.path.join(PREPROCESSING_DIR, mask))
@@ -141,6 +135,16 @@ if __name__ == "__main__":
                                                                                mask_obj,
                                                                                STATS_FILE,
                                                                                thresh,)
+
+        # crop off the padding
+        diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-1])/2)
+        segmented_img = segmented_img[:, :, diff_num_slices:-diff_num_slices]
+
+        # save resultant image
+        segmented_filename = os.path.join(SEG_DIR, filename)
+        segmented_nii_obj = nib.Nifti1Image(
+            segmented_img, affine=affine, header=header)
+        nib.save(segmented_nii_obj, segmented_filename)
 
         save_slice(filename,
                    nii_img[:, :, :, 0],
