@@ -136,6 +136,13 @@ if __name__ == "__main__":
                                                                                STATS_FILE,
                                                                                thresh,)
 
+        save_slice(filename,
+                   nii_img[:, :, :, 0],
+                   segmented_img,
+                   mask_img,
+                   cur_slices_dice,
+                   FIGURES_DIR)
+
         # crop off the padding
         diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-1])/2)
         segmented_img = segmented_img[:, :, diff_num_slices:-diff_num_slices]
@@ -145,13 +152,6 @@ if __name__ == "__main__":
         segmented_nii_obj = nib.Nifti1Image(
             segmented_img, affine=affine, header=header)
         nib.save(segmented_nii_obj, segmented_filename)
-
-        save_slice(filename,
-                   nii_img[:, :, :, 0],
-                   segmented_img,
-                   mask_img,
-                   cur_slices_dice,
-                   FIGURES_DIR)
 
         utils.write_dice_scores(filename, cur_vol_dice,
                                 cur_slices_dice, DICE_METRICS_FILE)
