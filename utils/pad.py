@@ -1,15 +1,17 @@
 import numpy as np
 
-def pad_image(img_data):
+def pad_image(img_data, target_dims=None):
     '''
     Pads the image to the nearest greater multiple of 16.
     This is due to the downsample/upsample count in the Unet.
     '''
 
     # pad to nearest greater multiple of 2**NUM_DOWNSAMPLES
-    NUM_DOWNSAMPLES = 4
-    scaling = 2**NUM_DOWNSAMPLES
-    target_dims = [int(np.ceil(x/scaling)) * scaling for x in img_data.shape[:3]]
+    # if target_dims not provided
+    if not target_dims:
+        NUM_DOWNSAMPLES = 4
+        scaling = 2**NUM_DOWNSAMPLES
+        target_dims = [int(np.ceil(x/scaling)) * scaling for x in img_data.shape[:3]]
 
     # handle number of channels
     if len(img_data.shape) == 4:
