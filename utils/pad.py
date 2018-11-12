@@ -13,6 +13,8 @@ def pad_image(img_data, target_dims=None):
         scaling = 2**NUM_DOWNSAMPLES
         target_dims = [int(np.ceil(x/scaling)) * scaling for x in img_data.shape[:3]]
 
+    target_dims = list(target_dims)
+
     # handle number of channels
     if len(img_data.shape) == 4:
         num_channels = img_data.shape[-1]
