@@ -127,7 +127,7 @@ if __name__ == "__main__":
         mask_obj = nib.load(os.path.join(PREPROCESSING_DIR, mask))
         mask_img = mask_obj.get_data()
         # pad the mask
-        mask_img = pad_image(mask_img)
+        mask_img = pad_image(mask_img, target_dims=segmented_img.shape)
         mask_obj = nib.Nifti1Image(
             mask_img, affine=mask_obj.affine, header=mask_obj.header)
 
