@@ -28,6 +28,7 @@ if __name__ == "__main__":
 
     ######################## COMMAND LINE ARGUMENTS ########################
     results = utils.parse_args("validate")
+    DATA_DIR = results.VAL_DIR
     num_channels = results.num_channels
 
     NUM_GPUS = 1
@@ -45,10 +46,14 @@ if __name__ == "__main__":
     model_filename = results.weights
 
     thresh = results.threshold
-    experiment_name = model_filename.split(os.sep)[-2]
-    utils.save_args_to_csv(results, os.path.join("results", experiment_name))
+    if DATA_DIR.split(os.sep)[1] == "test":
+        dir_tag = open("host_id.cfg").read().split()[0] + "_" + DATA_DIR.split(os.sep)[1]
+    else:
+        dir_tag = DATA_DIR.split(os.sep)[1]
+    experiment_name = os.path.basename(model_filename)[:os.path.basename(model_filename)
+            .find("_weights")] + "_" + dir_tag
 
-    DATA_DIR = results.VAL_DIR
+    utils.save_args_to_csv(results, os.path.join("results", experiment_name))
 
     ######################## PREPROCESS TESTING DATA ########################
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
@@ -59,6 +64,12 @@ if __name__ == "__main__":
     FIGURES_DIR = os.path.join("results", experiment_name, "figures")
     SEG_DIR = os.path.join(SEG_ROOT_DIR, experiment_name)
     REORIENT_DIR = os.path.join(SEG_DIR, "reoriented")
+
+    print(experiment_name)
+    for d in [PREPROCESSING_DIR, SEG_ROOT_DIR, STATS_DIR, SEG_DIR, REORIENT_DIR, FIGURES_DIR]:
+        print(d)
+    import sys
+    sys.exit()
 
     for d in [PREPROCESSING_DIR, SEG_ROOT_DIR, STATS_DIR, SEG_DIR, REORIENT_DIR, FIGURES_DIR]:
         if not os.path.exists(d):
