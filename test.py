@@ -161,9 +161,10 @@ if __name__ == "__main__":
                    cur_slices_dice,
                    FIGURES_DIR)
 
-        # crop off the padding
-        diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-1])/2)
-        segmented_img = segmented_img[:, :, diff_num_slices:-diff_num_slices]
+        # crop off the padding if necessary
+        if int(np.abs(pred_shape[-1] - orig_shape[-2])) > 2:
+            diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-1])/2)
+            segmented_img = segmented_img[:, :, diff_num_slices:-diff_num_slices]
 
         # save resultant image
         segmented_filename = os.path.join(SEG_DIR, filename)
