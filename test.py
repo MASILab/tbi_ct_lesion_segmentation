@@ -65,12 +65,6 @@ if __name__ == "__main__":
     SEG_DIR = os.path.join(SEG_ROOT_DIR, experiment_name)
     REORIENT_DIR = os.path.join(SEG_DIR, "reoriented")
 
-    print(experiment_name)
-    for d in [PREPROCESSING_DIR, SEG_ROOT_DIR, STATS_DIR, SEG_DIR, REORIENT_DIR, FIGURES_DIR]:
-        print(d)
-    import sys
-    sys.exit()
-
     for d in [PREPROCESSING_DIR, SEG_ROOT_DIR, STATS_DIR, SEG_DIR, REORIENT_DIR, FIGURES_DIR]:
         if not os.path.exists(d):
             os.makedirs(d)
