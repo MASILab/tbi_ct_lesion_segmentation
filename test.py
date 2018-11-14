@@ -65,12 +65,6 @@ if __name__ == "__main__":
     SEG_DIR = os.path.join(SEG_ROOT_DIR, experiment_name)
     REORIENT_DIR = os.path.join(SEG_DIR, "reoriented")
 
-    print(experiment_name)
-    for d in [PREPROCESSING_DIR, SEG_ROOT_DIR, STATS_DIR, SEG_DIR, REORIENT_DIR, FIGURES_DIR]:
-        print(d)
-    import sys
-    sys.exit()
-
     for d in [PREPROCESSING_DIR, SEG_ROOT_DIR, STATS_DIR, SEG_DIR, REORIENT_DIR, FIGURES_DIR]:
         if not os.path.exists(d):
             os.makedirs(d)
@@ -157,9 +151,10 @@ if __name__ == "__main__":
                    cur_slices_dice,
                    FIGURES_DIR)
 
-        # crop off the padding
-        diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-1])/2)
-        segmented_img = segmented_img[:, :, diff_num_slices:-diff_num_slices]
+        # crop off the padding if necessary
+        if int(np.abs(pred_shape[-1] - orig_shape[-2])) > 2:
+            diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-1])/2)
+            segmented_img = segmented_img[:, :, diff_num_slices:-diff_num_slices]
 
         # save resultant image
         segmented_filename = os.path.join(SEG_DIR, filename)
