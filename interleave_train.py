@@ -126,16 +126,22 @@ if __name__ == "__main__":
         # get current position in round robin
         cur_pos = ROUND_ROBIN_ORDER.index(most_recent)
 
+        '''
         # debug print statements
         print("Order:", ROUND_ROBIN_ORDER)
         print("cur_pos:", cur_pos)
         print("thiscomp:", THIS_COMPUTER)
         print("calc:", ROUND_ROBIN_ORDER[(cur_pos+1) % len(ROUND_ROBIN_ORDER)])
+        '''
 
         cur_host_turn = ROUND_ROBIN_ORDER[(
             cur_pos+1) % len(ROUND_ROBIN_ORDER)] == THIS_COMPUTER
 
         if cur_host_turn:
+
+            if cur_patience >= patience:
+                print("Training complete.")
+                sys.exit(0)
 
             existing_weights = [x for x in os.listdir(WEIGHT_DIR) if 'hdf5' in x]
             existing_weights.sort()
@@ -155,7 +161,7 @@ if __name__ == "__main__":
 
             ########## CALLBACKS ##########
             # checkpoints
-            monitor = "val_dice_coef"
+            monitor = "val_loss"
             checkpoint_filename = str(utils.now()) + "_" + monitor +\
                 "_{" + monitor + ":.4f}_weights.hdf5"
 
@@ -179,31 +185,26 @@ if __name__ == "__main__":
                                 validation_split=0.2,
                                 callbacks=callbacks_list)
 
-            cur_loss = history.history['val_loss'][-1]
+            cur_train_loss = history.history['loss'][-1]
+            cur_val_loss = history.history['val_loss'][-1]
 
             # manual early stopping procedures
-            if cur_loss < best_loss:
-                best_loss = cur_loss
+            if cur_val_loss < best_loss:
+                best_loss = cur_val_loss
                 cur_patience = 0
-            elif np.abs(cur_loss - best_loss) > min_delta:
+            elif np.abs(cur_val_loss - best_loss) > min_delta:
                 cur_patience += 1
             cur_epoch += 1
 
             # write updates
             logger.write_log(LOGFILE,
                              THIS_COMPUTER,
-                             history.history['val_dice_coef'][-1],
-                             cur_loss,
+                             cur_train_loss,
+                             cur_val_loss,
                              cur_patience,
                              best_loss,
                              cur_epoch)
-
-            if cur_patience >= patience:
-                print("Training complete.")
-                sys.exit(0)
+            print("Waiting for turn...")
 
         # else pass training to the next site
-        # sleep 120 seconds; epochs will take between 4 and 22 minutes
-        print("Waiting for turn...")
         time.sleep(10)
-        #K.clear_session() # fix memory allocation errors
