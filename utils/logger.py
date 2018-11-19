@@ -1,6 +1,6 @@
 from .utils import now
 
-def write_log(log_file, host_id, val_dice, cur_loss, cur_patience, best_loss, cur_epoch):
+def write_log(log_file, host_id, cur_train_loss, cur_val_loss, cur_patience, best_loss, cur_epoch):
     update_log_file = False
     new_log_file = False
 
@@ -19,8 +19,8 @@ def write_log(log_file, host_id, val_dice, cur_loss, cur_patience, best_loss, cu
                 f.write("{:<30}\t{:<10}\t{:<10}\t{:<10}\t{:<10}\t{:<10}\t{:<10}\n".format(
                     "timestamp",
                     "host_id",
-                    "val_dice",
-                    "cur_loss",
+                    "cur_train_loss",
+                    "cur_val_loss",
                     "cur_patience",
                     "best_loss",
                     "cur_epoch",
@@ -28,8 +28,8 @@ def write_log(log_file, host_id, val_dice, cur_loss, cur_patience, best_loss, cu
             f.write("{:<30}\t{:<10}\t{:<10.4f}\t{:<10.4f}\t{:<10}\t{:<10.4f}\t{:<10}\n".format(
                 now(),
                 host_id,
-                val_dice,
-                cur_loss,
+                cur_train_loss,
+                cur_val_loss,
                 cur_patience,
                 best_loss,
                 cur_epoch,
