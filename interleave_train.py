@@ -62,8 +62,6 @@ if __name__ == "__main__":
     MODEL_NAME = model_architecture + "_model_" + experiment_details
     MODEL_PATH = os.path.join(WEIGHT_DIR, MODEL_NAME + ".json")
 
-    # files and paths
-    TRAIN_DIR = results.SRC_DIR
 
     for d in [WEIGHT_DIR, TB_LOG_DIR]:
         if not os.path.exists(d):
@@ -80,7 +78,7 @@ if __name__ == "__main__":
 
     ########### PREPROCESS TRAINING DATA ##########
 
-    DATA_DIR = os.path.join("data", "train")
+    DATA_DIR = results.SRC_DIR
     PREPROCESSED_DIR = os.path.join(DATA_DIR, "preprocessed")
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
 
@@ -207,4 +205,5 @@ if __name__ == "__main__":
         # else pass training to the next site
         # sleep 120 seconds; epochs will take between 4 and 22 minutes
         print("Waiting for turn...")
-        time.sleep(120)
+        time.sleep(10)
+        #K.clear_session() # fix memory allocation errors
