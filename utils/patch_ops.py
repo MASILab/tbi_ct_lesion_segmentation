@@ -167,12 +167,12 @@ def get_patches(invols, mask, patchsize, maxpatch, num_channels):
 
         for c in range(num_channels):
             CTPatches[i, : , : , c] = invols[c][I - dsize[0]: I + dsize[0] + 1,
-                                              J - dsize[1]: J + dsize[1] + 1,
-                                              K]
-
+                                                J - dsize[1]: J + dsize[1] + 1,
+                                                K]
+  
         MaskPatches[i, : , : , 0] = mask[I - dsize[0]: I + dsize[0] + 1,
-                                       J - dsize[1]:J + dsize[1] + 1,
-                                       K]
+                                         J - dsize[1]:J + dsize[1] + 1,
+                                         K]
 
     CTPatches = np.asarray(CTPatches, dtype=np.float16)
     MaskPatches = np.asarray(MaskPatches, dtype=np.float16)
