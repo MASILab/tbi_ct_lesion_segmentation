@@ -11,9 +11,13 @@ Input images should simply be the raw CT scans.
 import os
 import numpy as np
 import nibabel as nib
+from subprocess import Popen, PIPE
+
 from utils import utils
+from utils import preprocess
 from utils.save_figures import *
-from utils.apply_model import apply_model, apply_model_single_input
+from utils.apply_model import apply_model_single_input
+from utils.pad import pad_image
 from keras.models import load_model
 from keras import backend as K
 from models.losses import *
@@ -24,19 +28,37 @@ if __name__ == "__main__":
 
     ######################## COMMAND LINE ARGUMENTS ########################
     results = utils.parse_args("validate")
-    num_channels = results.num_channels
-    model_filename = results.weights
-    thresh = results.threshold
-    experiment_name = model_filename.split(os.sep)[-2]
-    experiment_details = os.path.basename(model_filename)[:os.path.basename(model_filename)
-                                                          .find('.hdf5')]
     DATA_DIR = results.VAL_DIR
+    num_channels = results.num_channels
+
+    NUM_GPUS = 1
+    if results.GPUID == None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    elif results.GPUID == -1:
+        # find maximum number of available GPUs
+        call = "nvidia-smi --list-gpus"
+        pipe = Popen(call, shell=True, stdout=PIPE).stdout
+        available_gpus = pipe.read().decode().splitlines()
+        NUM_GPUS = len(available_gpus)
+    else:
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(results.GPUID)
+
+    model_filename = results.weights
+
+    thresh = results.threshold
+    if DATA_DIR.split(os.sep)[1] == "test":
+        dir_tag = open("host_id.cfg").read().split()[0] + "_" + DATA_DIR.split(os.sep)[1]
+    else:
+        dir_tag = DATA_DIR.split(os.sep)[1]
+    experiment_name = os.path.basename(model_filename)[:os.path.basename(model_filename)
+            .find("_weights")] + "_" + dir_tag
+
+    utils.save_args_to_csv(results, os.path.join("results", experiment_name))
 
     ######################## PREPROCESS TESTING DATA ########################
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
-    N4_SCRIPT_PATH = os.path.join("utils", "N4BiasFieldCorrection")
 
-    PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessing")
+    PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessed")
     SEG_ROOT_DIR = os.path.join(DATA_DIR, "segmentations")
     STATS_DIR = os.path.join("results", experiment_name)
     FIGURES_DIR = os.path.join("results", experiment_name, "figures")
@@ -48,29 +70,27 @@ if __name__ == "__main__":
             os.makedirs(d)
 
     # Stats file
-    stat_filename = "result_" + experiment_details + ".csv"
+    stat_filename = "result_" + experiment_name + ".csv"
     STATS_FILE = os.path.join(STATS_DIR, stat_filename)
     DICE_METRICS_FILE = os.path.join(
-        STATS_DIR, "detailed_dice_" + experiment_details + ".csv")
+        STATS_DIR, "detailed_dice_" + experiment_name + ".csv")
+
+    ######################## LOAD MODEL ########################
+    model = load_model(model_filename,
+                       custom_objects=custom_losses)
 
     ######################## PREPROCESSING ########################
     filenames = [x for x in os.listdir(DATA_DIR)
                  if not os.path.isdir((os.path.join(DATA_DIR, x)))]
     filenames.sort()
 
-    for filename in filenames:
-        final_preprocess_dir = utils.preprocess(filename,
-                                                DATA_DIR,
-                                                PREPROCESSING_DIR,
-                                                SKULLSTRIP_SCRIPT_PATH,
-                                                N4_SCRIPT_PATH)
-
-    ######################## LOAD MODEL ########################
-    model = load_model(model_filename, custom_objects=custom_losses)
+    preprocess.preprocess_dir(DATA_DIR,
+                              PREPROCESSING_DIR,
+                              SKULLSTRIP_SCRIPT_PATH)
 
     ######################## SEGMENT FILES ########################
-    filenames = [x for x in os.listdir(final_preprocess_dir)
-                 if not os.path.isdir(os.path.join(final_preprocess_dir, x))]
+    filenames = [x for x in os.listdir(PREPROCESSING_DIR)
+                 if not os.path.isdir(os.path.join(PREPROCESSING_DIR, x))]
     masks = [x for x in filenames if "mask" in x]
     filenames = [x for x in filenames if "CT" in x]
 
@@ -90,33 +110,31 @@ if __name__ == "__main__":
 
     for filename, mask in zip(filenames, masks):
         # load nifti file data
-        nii_obj = nib.load(os.path.join(final_preprocess_dir, filename))
+        nii_obj = nib.load(os.path.join(PREPROCESSING_DIR, filename))
         nii_img = nii_obj.get_data()
         header = nii_obj.header
         affine = nii_obj.affine
 
-        # reshape to account for implicit "1" channel
+        # pad and reshape to account for implicit "1" channel
         nii_img = np.reshape(nii_img, nii_img.shape + (1,))
-
-        '''
-        # TODO: experimenting with HU range
-        blood_HU_range = range(3, 86)
-        nii_img[np.invert(np.isin(nii_img, blood_HU_range))] = 0
-        '''
+        orig_shape = nii_img.shape
+        nii_img = pad_image(nii_img)
 
         # segment
-        #segmented_img = apply_model(nii_img, model)
         segmented_img = apply_model_single_input(nii_img, model)
+        pred_shape = segmented_img.shape
 
-        # save resultant image
-        segmented_filename = os.path.join(SEG_DIR, filename)
+        # create nii obj
         segmented_nii_obj = nib.Nifti1Image(
             segmented_img, affine=affine, header=header)
-        nib.save(segmented_nii_obj, segmented_filename)
 
         # load mask file data
-        mask_obj = nib.load(os.path.join(final_preprocess_dir, mask))
+        mask_obj = nib.load(os.path.join(PREPROCESSING_DIR, mask))
         mask_img = mask_obj.get_data()
+        # pad the mask
+        mask_img = pad_image(mask_img, target_dims=segmented_img.shape)
+        mask_obj = nib.Nifti1Image(
+            mask_img, affine=mask_obj.affine, header=mask_obj.header)
 
         # write statistics to file
         print("Collecting stats...")
@@ -133,6 +151,17 @@ if __name__ == "__main__":
                    cur_slices_dice,
                    FIGURES_DIR)
 
+        # crop off the padding if necessary
+        if int(np.abs(pred_shape[-1] - orig_shape[-2])) > 2:
+            diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-1])/2)
+            segmented_img = segmented_img[:, :, diff_num_slices:-diff_num_slices]
+
+        # save resultant image
+        segmented_filename = os.path.join(SEG_DIR, filename)
+        segmented_nii_obj = nib.Nifti1Image(
+            segmented_img, affine=affine, header=header)
+        nib.save(segmented_nii_obj, segmented_filename)
+
         utils.write_dice_scores(filename, cur_vol_dice,
                                 cur_slices_dice, DICE_METRICS_FILE)
 
@@ -142,7 +171,7 @@ if __name__ == "__main__":
 
         # Reorient back to original before comparisons
         print("Reorienting...")
-        utils.reorient(filename, final_preprocess_dir, SEG_DIR)
+        utils.reorient(filename, DATA_DIR, SEG_DIR)
 
         # get probability volumes and threshold image
         print("Thresholding...")
@@ -162,4 +191,4 @@ if __name__ == "__main__":
         f.write("Dice: {:.4f}\nVolume Correlation: {:.4f}".format(
             mean_dice, corr))
 
-K.clear_session()
+    K.clear_session()
