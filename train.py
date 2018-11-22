@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import os
 from subprocess import Popen, PIPE
@@ -53,6 +54,8 @@ if __name__ == "__main__":
 
     MODEL_NAME = model_architecture + "_model_" + experiment_details
     MODEL_PATH = os.path.join(WEIGHT_DIR, MODEL_NAME + ".json")
+
+    HISTORY_PATH = os.path.join(WEIGHT_DIR, MODEL_NAME + "_history.json")
 
     # files and paths
     TRAIN_DIR = results.SRC_DIR
@@ -132,5 +135,8 @@ if __name__ == "__main__":
                         verbose=1,
                         validation_split=0.2,
                         callbacks=callbacks_list,)
+
+    with open(HISTORY_PATH, 'w') as f:
+        json.dump(history.history, f)
 
     K.clear_session()
