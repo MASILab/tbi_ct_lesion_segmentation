@@ -13,6 +13,7 @@ import numpy as np
 import nibabel as nib
 from subprocess import Popen, PIPE
 
+from sklearn import metrics
 from utils import utils
 from utils import preprocess
 from utils.save_figures import *
@@ -108,6 +109,9 @@ if __name__ == "__main__":
     pred_vols = []
     gt_vols = []
 
+    roc_aucs = []
+    precision_scores = []
+
     for filename, mask in zip(filenames, masks):
         # load nifti file data
         nii_obj = nib.load(os.path.join(PREPROCESSING_DIR, filename))
@@ -154,6 +158,17 @@ if __name__ == "__main__":
                                                                                STATS_FILE,
                                                                                thresh,)
 
+        # ROC and PPV metrics
+        thresh_img = segmented_img.copy()
+        thresh_img[np.where(thresh_img >= 0.5)] = 1
+        thresh_img[np.where(thresh_img < 0.5)] = 0
+
+        fpr, tpr, _ = metrics.roc_curve(mask_img.flatten(), segmented_img.flatten())
+        roc_aucs.append(metrics.auc(fpr, tpr))
+        precision_scores.append(metrics.precision_score(mask_img.flatten(), thresh_img.flatten()))
+
+        '''
+        # save img
         save_slice(filename,
                    nii_img[:, :, :, 0],
                    segmented_img,
@@ -174,6 +189,7 @@ if __name__ == "__main__":
 
         utils.write_dice_scores(filename, cur_vol_dice,
                                 cur_slices_dice, DICE_METRICS_FILE)
+        '''
 
         mean_dice += cur_vol_dice
         pred_vols.append(cur_vol)
@@ -194,11 +210,16 @@ if __name__ == "__main__":
     print("*** Segmentation complete. ***")
     print("Mean DICE: {:.3f}".format(mean_dice))
     print("Volume Correlation: {:.3f}".format(corr))
+    print("Mean ROC AUC: {:.3f}".format(np.mean(roc_aucs)))
+    print("Mean precision score: {:.3f}".format(np.mean(precision_scores)))
 
     # save these two numbers to file
     metrics_path = os.path.join(STATS_DIR, "metrics.txt")
     with open(metrics_path, 'w') as f:
-        f.write("Dice: {:.4f}\nVolume Correlation: {:.4f}".format(
-            mean_dice, corr))
+        f.write("Dice: {:.4f}\nVolume Correlation: {:.4f}\nMean AUC: {:.4f}\nMean PPV: {:.4f}\n".format(
+            mean_dice, 
+            corr,
+            np.mean(roc_aucs),
+            np.mean(precision_scores)))
 
     K.clear_session()
