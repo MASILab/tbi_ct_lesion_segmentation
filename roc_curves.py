@@ -4,7 +4,6 @@
 # In[4]:
 
 
-get_ipython().magic('matplotlib inline')
 import numpy as np
 import nibabel as nib
 import pandas as pd
