@@ -13,6 +13,7 @@ import numpy as np
 import nibabel as nib
 from subprocess import Popen, PIPE
 
+from sklearn import metrics
 from utils import utils
 from utils import preprocess
 from utils.save_figures import *
@@ -47,11 +48,12 @@ if __name__ == "__main__":
 
     thresh = results.threshold
     if DATA_DIR.split(os.sep)[1] == "test":
-        dir_tag = open("host_id.cfg").read().split()[0] + "_" + DATA_DIR.split(os.sep)[1]
+        dir_tag = open("host_id.cfg").read().split()[
+            0] + "_" + DATA_DIR.split(os.sep)[1]
     else:
         dir_tag = DATA_DIR.split(os.sep)[1]
     experiment_name = os.path.basename(model_filename)[:os.path.basename(model_filename)
-            .find("_weights")] + "_" + dir_tag
+                                                       .find("_weights")] + "_" + dir_tag
 
     utils.save_args_to_csv(results, os.path.join("results", experiment_name))
 
@@ -108,6 +110,9 @@ if __name__ == "__main__":
     pred_vols = []
     gt_vols = []
 
+    roc_aucs = []
+    precision_scores = []
+
     for filename, mask in zip(filenames, masks):
         # load nifti file data
         nii_obj = nib.load(os.path.join(PREPROCESSING_DIR, filename))
@@ -144,17 +149,19 @@ if __name__ == "__main__":
                                                                                STATS_FILE,
                                                                                thresh,)
 
-        save_slice(filename,
-                   nii_img[:, :, :, 0],
-                   segmented_img,
-                   mask_img,
-                   cur_slices_dice,
-                   FIGURES_DIR)
-
         # crop off the padding if necessary
-        if int(np.abs(pred_shape[-1] - orig_shape[-2])) > 2:
-            diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-1])/2)
-            segmented_img = segmented_img[:, :, diff_num_slices:-diff_num_slices]
+        diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-2])/2)
+
+        print("Orig shape: {}".format(orig_shape))
+        print("Pred shape: {}".format(pred_shape))
+        print("Slice diff: {}".format(diff_num_slices))
+
+        if int(np.abs(pred_shape[-1] - orig_shape[-2])) > 0:
+            diff_num_slices = int(np.abs(pred_shape[-1]-orig_shape[-2])/2)
+            print("New shape: {}".format(segmented_img[:, :, diff_num_slices:-diff_num_slices].shape
+                                         ))
+            segmented_img = segmented_img[:, :,
+                                          diff_num_slices:-diff_num_slices]
 
         # save resultant image
         segmented_filename = os.path.join(SEG_DIR, filename)
@@ -188,7 +195,8 @@ if __name__ == "__main__":
     # save these two numbers to file
     metrics_path = os.path.join(STATS_DIR, "metrics.txt")
     with open(metrics_path, 'w') as f:
-        f.write("Dice: {:.4f}\nVolume Correlation: {:.4f}".format(
-            mean_dice, corr))
+        f.write("Dice: {:.4f}\nVolume Correlation: {:.4f}\n".format(
+            mean_dice,
+            corr))
 
     K.clear_session()
