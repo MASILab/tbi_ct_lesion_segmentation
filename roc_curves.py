@@ -12,10 +12,11 @@ import seaborn as sns
 import os
 from sklearn.utils import shuffle
 from sklearn import metrics
-from ggplot import *
 from time import time
 import operator
 from tqdm import *
+
+from utils.pad import pad_image
 
 
 # In[26]:
@@ -92,6 +93,11 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
 
             x_gt = nib.load(gt).get_data()
 
+            print(x.shape, x_gt.shape)
+            if x.shape != x_gt.shape:
+                x_gt = pad_image(x_gt, target_dims=x.shape)
+            print(x.shape, x_gt.shape)
+
             x_gt_aggr = np.append(x_gt_aggr, x_gt.flatten())
             x_pred_aggr = np.append(x_pred_aggr, x.flatten())
             x_thresh_aggr = np.append(x_thresh_aggr, x_thresh.flatten())
@@ -128,6 +134,7 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
     #plt.show()
     
     plt.savefig("roc_curve_"+dataset_name.replace(" ", "_")+".png")
+    plt.close()
     with open("precision_"+dataset_name.replace(" ", "_")+".txt", "w") as f:
         for k, v in scores_dict.items():
             f.write("{} Precision: {:.4f}\n".format(k, v['precision']))

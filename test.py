@@ -120,10 +120,23 @@ if __name__ == "__main__":
         header = nii_obj.header
         affine = nii_obj.affine
 
+        # load mask file data
+        mask_obj = nib.load(os.path.join(PREPROCESSING_DIR, mask))
+        mask_img = mask_obj.get_data()
+
         # pad and reshape to account for implicit "1" channel
         nii_img = np.reshape(nii_img, nii_img.shape + (1,))
         orig_shape = nii_img.shape
-        nii_img = pad_image(nii_img)
+
+        # if the mask is larger, pad to hardcoded value 
+        if mask_img.shape[0] > nii_img.shape[0] or mask_img.shape[1] > nii_img.shape[1]:
+            TARGET_DIMS = (656,656,96)
+            nii_img = pad_image(nii_img, target_dims=TARGET_DIMS)
+            mask_img = pad_image(mask_img, target_dims=TARGET_DIMS)
+        else: # otherwise pad normally
+            nii_img = pad_image(nii_img)
+            mask_img = pad_image(mask_img, target_dims=nii_img.shape[:3])
+
 
         # segment
         segmented_img = apply_model_single_input(nii_img, model)
@@ -133,11 +146,8 @@ if __name__ == "__main__":
         segmented_nii_obj = nib.Nifti1Image(
             segmented_img, affine=affine, header=header)
 
-        # load mask file data
-        mask_obj = nib.load(os.path.join(PREPROCESSING_DIR, mask))
-        mask_img = mask_obj.get_data()
-        # pad the mask
-        mask_img = pad_image(mask_img, target_dims=segmented_img.shape)
+
+
         mask_obj = nib.Nifti1Image(
             mask_img, affine=mask_obj.affine, header=mask_obj.header)
 
