@@ -77,9 +77,6 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
         gt_filenames = [x for x in gt_filenames if "mask" in x]
         gt_filenames.sort()
         
-        pred_filenames = pred_filenames[:3]
-        gt_filenames = gt_filenames[:3]
-        
         x_gt_aggr = np.empty(shape=0)
         x_pred_aggr = np.empty(shape=0)
         x_thresh_aggr = np.empty(shape=0)
@@ -93,10 +90,8 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
 
             x_gt = nib.load(gt).get_data()
 
-            print(x.shape, x_gt.shape)
             if x.shape != x_gt.shape:
                 x_gt = pad_image(x_gt, target_dims=x.shape)
-            print(x.shape, x_gt.shape)
 
             x_gt_aggr = np.append(x_gt_aggr, x_gt.flatten())
             x_pred_aggr = np.append(x_pred_aggr, x.flatten())
@@ -114,7 +109,7 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
         label = model_name + " AUC = {:02f}".format(auc)
         line, = plt.plot(fpr, tpr, label=label)
         
-        legend_items.append((model_name, line))
+        legend_items.append((label, line))
 
 
         
