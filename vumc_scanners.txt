@@ -1,0 +1,62 @@
+10071,CT1012 Philips Brilliance 64
+10100,CT1332 Philips Brilliance 64
+10187,CT1012 Philips Brilliance 64
+10303,CT1332 Philips Brilliance 64
+10346,CT1332 GE MEDICAL SYSTEMS LightSpeed Ultra
+10397,CT1332 GE MEDICAL SYSTEMS LightSpeed Ultra
+10472,CT1332 Philips Brilliance 64
+10570,CT1012 Philips Brilliance 64
+10701,MX8000IDT Philips Brilliance 64
+10785,CT1012 Philips Brilliance 64
+10842,ERCT_OC0 GE MEDICAL SYSTEMS LightSpeed Ultra
+10873,ERCT_OC0 GE MEDICAL SYSTEMS LightSpeed Ultra
+10880,CT1332 Philips Brilliance 64
+10909,CT1332 Philips Brilliance 64
+10974,ERCT_OC0 GE MEDICAL SYSTEMS LightSpeed Ultra
+10991,MX8000IDT Philips Mx8000 IDT 16
+11118,ERCT_OC0 GE MEDICAL SYSTEMS LightSpeed Ultra
+11128,CT1332 Philips Mx8000 IDT 16
+11170,MX8000IDT GE MEDICAL SYSTEMS LightSpeed Ultra
+11205,CT1332 Philips Brilliance 64
+11455,CT1012 Philips Brilliance 64
+11471,CT1332 Philips Brilliance 64
+11653,CD Import PC GE MEDICAL SYSTEMS LightSpeed Ultra
+11747,CT1313 Philips Brilliance 64
+11777,CT1012 Philips Brilliance 64
+11970,CT1012 Philips Brilliance 64
+12021,CT1332 Philips Brilliance 64
+12065,CT1332 Philips Brilliance 64
+12184,CT1012 Philips Brilliance 64
+12456,CT1332 Philips Brilliance 64
+12874,CT1332 Philips Brilliance 64
+13819,CT1313 Philips Brilliance 64
+14468,CD Import GE MEDICAL SYSTEMS BrightSpeed 
+10327,CT1332 GE MEDICAL SYSTEMS LightSpeed Ultra
+10373,CT1012 Philips Brilliance 64
+10458,CT1332 Philips Brilliance 64
+10501,CT1332 Philips Brilliance 64
+10581,CT1332 Philips Brilliance 64
+10610,CT1332 Philips Mx8000 IDT 16
+10617,ERCT_OC0 Philips Brilliance 64
+10727,CT1332 Philips Brilliance 64
+10872,CT1332 Philips Brilliance 64
+10876,CT1332 Philips Brilliance 64
+10885,CT1332 Philips Brilliance 64
+11000,CT1012 GE MEDICAL SYSTEMS LightSpeed Ultra
+11202,CT1017 Philips Mx8000 IDT 16
+11336,CT1012;MX8000IDT Philips Brilliance 64
+11365,CT1332 Philips Brilliance 64
+11428,CT1332 Philips Brilliance 64
+11456,MX8000IDT Philips Mx8000 IDT 16
+11578,CT1012 Philips Brilliance 64
+11699,CT1012 Philips Brilliance 64
+11767,CT1313 Philips Mx8000 IDT 16
+11915,CT1313 Philips Brilliance 64
+12018,CT1313 Philips Brilliance 64
+12035,CT1332 Philips Brilliance 64
+12161,CT1332 Philips Brilliance 64
+12238,CT1313 Philips Brilliance 64
+12516,CT1014 Philips Brilliance 64
+13159,CT1332 Philips Brilliance 64
+14234,CT1332 Philips Brilliance 64
+15110,CT1332 Philips Brilliance 64
