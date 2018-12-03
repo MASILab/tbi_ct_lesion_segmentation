@@ -1,5 +1,5 @@
 SSL NIH Precision: 0.8315
-MSL 1/2 A Precision: 0.8530
-MSL Full Precision: 0.8904
-SSL VUMC Precision: 0.8765
 MSL 1/2 B Precision: 0.8802
+SSL VUMC Precision: 0.8765
+MSL Full Precision: 0.8904
+MSL 1/2 A Precision: 0.8530
