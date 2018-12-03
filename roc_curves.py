@@ -122,7 +122,8 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
         
     # sort the legend
     legend_items.sort()
-    plt.legend([x[1] for x in legend_items], [x[0] for x in legend_items])
+    plt.legend([x[1] for x in legend_items], [x[0] for x in legend_items],
+            loc='lower right')
     
     # plot the y=x line
     plt.plot([0,1],[0,1], 'k--')
