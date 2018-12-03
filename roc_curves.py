@@ -51,6 +51,8 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
     plt.title('Reciever Operating Characteristic Curves for ' + dataset_name)
     scores_dict = {}
     legend_items = []
+
+    colors = ['r', 'p', 'g', 'b', 'o']
     
     for i, model in enumerate(MODELS):
         
@@ -112,7 +114,7 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
                                    "thresholds": thresholds}
         
         label = model_name + " AUC = {:02f}".format(auc)
-        line, = plt.plot(fpr, tpr, label=label)
+        line, = plt.plot(fpr, tpr, color=colors[i], label=label)
         
         legend_items.append((model_name, line))
 
