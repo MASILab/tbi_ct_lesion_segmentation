@@ -89,10 +89,10 @@ if __name__ == "__main__":
     orig_output = model.layers[-1].output
     hard_output = keras.layers.Activation(
         'linear', name='raw_output')(orig_output)
-    model = model.keras.models.Model(input=model.input, output=hard_output)
+    model = keras.models.Model(input=model.input, output=hard_output)
     model.compile(optimizer=keras.optimizers.Adam(lr=1e-4),
                   metrics=[dice_coef],
-                  loss=loss)
+                  loss=continuous_dice_coef)
 
     ######################## PREPROCESSING ########################
     filenames = [x for x in os.listdir(DATA_DIR)
