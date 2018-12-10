@@ -23,6 +23,7 @@ from utils.apply_model import apply_model_single_input
 from utils.pad import pad_image
 from keras.models import load_model
 from keras import backend as K
+import keras
 from models.losses import *
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
@@ -86,7 +87,8 @@ if __name__ == "__main__":
     ######################## NETWORK SURGERY ########################
     model.layers.pop()
     orig_output = model.layers[-1].output
-    hard_output = keras.layers.Activation('linear', name='raw_output')(orig_output)
+    hard_output = keras.layers.Activation(
+        'linear', name='raw_output')(orig_output)
     model = model.keras.models.Model(input=model.input, output=hard_output)
     model.compile(optimizer=keras.optimizers.Adam(lr=1e-4),
                   metrics=[dice_coef],
@@ -130,13 +132,13 @@ if __name__ == "__main__":
         segmented_img = apply_model_single_input(nii_img, model)
 
         x = segmented_img.flatten()
-        plt.hist(x, bins='auto')
+        fig = plt.hist(x, bins='auto')
         plt.title("Intensities for {}".format(os.path.basename(filename)))
         hist_dir = os.path.join("stats", "raw_histograms")
         if not os.path.exists(hist_dir):
             os.path.makedirs(hist_dir)
         hist_name = os.path.join(hist_dir,
-                    "histogram_{}.png".format(os.path.basename(filename))
-        plt.save(hist_name)
+                                 "histogram_{}.png".format(os.path.basename(filename)))
+        plt.savefig(fig, hist_name)
 
     K.clear_session()
