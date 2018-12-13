@@ -2,12 +2,15 @@
 # coding: utf-8
 
 # In[4]:
+import matplotlib
+matplotlib.use('Agg')
 
 
 import numpy as np
 import nibabel as nib
 import pandas as pd
 import matplotlib.pyplot as plt
+
 import seaborn as sns
 import os
 from sklearn.utils import shuffle
@@ -44,7 +47,12 @@ sns.set(rc={'figure.figsize':(10, 7.5)})
 for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
     
     PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessed")
+    RESIZED_DIR = os.path.join(PREPROCESSING_DIR, "padded_masks")
     SEG_ROOT_DIR_BASE = os.path.join(DATA_DIR, "segmentations")
+
+    if not os.path.exists(RESIZED_DIR):
+        os.makedirs(RESIZED_DIR)
+
     MODELS = [x for x in os.listdir(SEG_ROOT_DIR_BASE) if "val" in x]
     print(MODELS)
     
@@ -52,7 +60,7 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
     scores_dict = {}
     legend_items = []
 
-    colors = ['r', 'p', 'g', 'b', 'o']
+    colors = ['r', 'g', 'b', 'c', 'm']
     
     for i, model in enumerate(MODELS):
         
@@ -77,6 +85,8 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
         gt_filenames = [os.path.join(PREPROCESSING_DIR, x) for x in os.listdir(PREPROCESSING_DIR) 
                           if not os.path.isdir(os.path.join(PREPROCESSING_DIR, x))]
         gt_filenames = [x for x in gt_filenames if "mask" in x]
+        gt_filenames = [os.path.join(RESIZED_DIR, x) for x in os.listdir(RESIZED_DIR)
+                if not os.path.isdir(os.path.join(RESIZED_DIR, x))]
         gt_filenames.sort()
         
         x_gt_aggr = np.empty(shape=0)
@@ -85,19 +95,31 @@ for DATA_DIR, dataset_name in zip(DATA_DIRS, dataset_names):
 
         # aggregate all volumes into one big volume
         for pred, gt in tqdm(zip(pred_filenames, gt_filenames), total=len(gt_filenames)):
-            x = nib.load(pred).get_data()
+            x = nib.load(pred)
+            header = x.header
+            affine = x.affine
+            x = x.get_data()
             x_thresh = x.copy()
             x_thresh[np.where(x_thresh >= 0.5)] = 1
             x_thresh[np.where(x_thresh < 0.5)] = 0
 
             x_gt = nib.load(gt).get_data()
 
+            '''
             if x.shape != x_gt.shape:
                 x_gt = pad_image(x_gt, target_dims=x.shape)
+
+            resized_mask = nib.Nifti1Image(x_gt, affine=affine, header=header)
+            resized_name = os.path.join(RESIZED_DIR, os.path.basename(gt))
+            print(resized_name)
+            nib.save(resized_mask, resized_name)
+            '''
+
 
             x_gt_aggr = np.append(x_gt_aggr, x_gt.flatten())
             x_pred_aggr = np.append(x_pred_aggr, x.flatten())
             x_thresh_aggr = np.append(x_thresh_aggr, x_thresh.flatten())
+
 
 
         fpr, tpr, thresholds = metrics.roc_curve(x_gt_aggr, x_pred_aggr)

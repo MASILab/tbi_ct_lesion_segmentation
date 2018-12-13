@@ -1,1 +1,1 @@
---datadir data/train --psize 128x128 --batch_size 128 --num_patches 1000 --num_channels 1 --experiment_details nih_ssl 
+--datadir data/train --psize 128x128 --batch_size 128 --num_patches 1000 --num_channels 1 --experiment_details vu_ssl 

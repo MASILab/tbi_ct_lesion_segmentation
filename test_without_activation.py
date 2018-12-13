@@ -13,6 +13,9 @@ import numpy as np
 import nibabel as nib
 from subprocess import Popen, PIPE
 
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 
 from sklearn import metrics
@@ -131,14 +134,23 @@ if __name__ == "__main__":
         # segment
         segmented_img = apply_model_single_input(nii_img, model)
 
+        # save this image
+        output_dir = os.path.join("data", "raw_outputs")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        segmented_filename = os.path.join(output_dir, filename)
+        x = nib.Nifti1Image(segmented_img, affine=affine, header=header)
+        nib.save(x, segmented_filename)
+
         x = segmented_img.flatten()
-        fig = plt.hist(x, bins='auto')
+        plt.hist(x, bins=100)
         plt.title("Intensities for {}".format(os.path.basename(filename)))
         hist_dir = os.path.join("stats", "raw_histograms")
         if not os.path.exists(hist_dir):
-            os.path.makedirs(hist_dir)
+            os.makedirs(hist_dir)
         hist_name = os.path.join(hist_dir,
                                  "histogram_{}.png".format(os.path.basename(filename)))
-        plt.savefig(fig, hist_name)
+        plt.savefig(hist_name)
+        plt.close()
 
     K.clear_session()
