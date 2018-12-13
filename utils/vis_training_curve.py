@@ -5,6 +5,7 @@ import seaborn as sns
 import random
 
 LOGDIR = "logs"
+plt.figure(figsize=(20,10))
 
 filenames = [os.path.join(LOGDIR, x) for x in os.listdir(LOGDIR) if ".txt" in x]
 TIME = 0
