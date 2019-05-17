@@ -1,3 +1,5 @@
+import matplotlib as mpl
+mpl.use("Agg")
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -5,9 +7,10 @@ import seaborn as sns
 import random
 
 LOGDIR = "logs"
-plt.figure(figsize=(20,10))
+plt.figure(figsize=(20,5))
 
 filenames = [os.path.join(LOGDIR, x) for x in os.listdir(LOGDIR) if ".txt" in x]
+filenames.sort()
 TIME = 0
 SITE = 1
 TRAIN_LOSS = 2
@@ -41,7 +44,7 @@ for i in range(len(filenames)):
     elif "half" in filenames[i]:
         session = "MSL 1/2 A"
     elif "nih" in filenames[i]:
-        session = "SSL NIH"
+        session = "SSL CNRM"
     elif "vu" in filenames[i]:
         session = "SSL VUMC"
 
@@ -50,6 +53,7 @@ for i in range(len(filenames)):
                       y=val_losses,
                       color=sns.xkcd_rgb[colors[i]],
                       label=session + " " + "Validation Loss")
+
     #ax.lines[cur_ax].set_linestyle("--")
     '''
 
@@ -60,10 +64,12 @@ for i in range(len(filenames)):
     cur_ax += 2 # used to manually make validation graph a dashed line
     '''
 
-ax.set(xlabel="Epoch",
-       ylabel="Loss")
-ax.legend()
+fontsize = 15
 
-plt.title("Model Validation Loss by Epoch")
-plt.savefig("validation_loss.png")
+ax.set_xlabel("Epoch", fontsize=fontsize)
+ax.set_ylabel("Loss", fontsize=fontsize)
+
+plt.title("Model Validation Loss by Epoch", fontsize=fontsize)
+plt.legend(prop={'size': fontsize})
+plt.savefig("validation_loss_font_bigger.png")
 #plt.show()

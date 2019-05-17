@@ -43,38 +43,23 @@ if __name__ == "__main__":
 
     model_filename = results.weights
 
-    experiment_name = model_filename.split(os.sep)[-2]
-    utils.save_args_to_csv(results, os.path.join("results", experiment_name))
-
     ######################## FOLDER SETUP ########################
     SKULLSTRIP_SCRIPT_PATH = os.path.join("utils", "CT_BET.sh")
 
     DATA_DIR = results.segdir
 
     PREPROCESSING_DIR = os.path.join(DATA_DIR, "preprocessed")
-    SEG_ROOT_DIR = os.path.join(DATA_DIR, "segmentations")
-    STATS_DIR = os.path.join("results", experiment_name)
-    FIGURES_DIR = os.path.join("results", experiment_name, "figures")
-    SEG_DIR = os.path.join(SEG_ROOT_DIR, experiment_name)
+    SEG_DIR = os.path.join(DATA_DIR, "segmentations")
     REORIENT_DIR = os.path.join(SEG_DIR, "reoriented")
     TMPDIR = os.path.join(
         PREPROCESSING_DIR, "tmp_intermediate_preprocessing_steps")
 
     for d in [PREPROCESSING_DIR,
-              SEG_ROOT_DIR,
-              STATS_DIR,
               SEG_DIR,
               REORIENT_DIR,
-              FIGURES_DIR,
               TMPDIR]:
         if not os.path.exists(d):
             os.makedirs(d)
-
-    # Stats file
-    stat_filename = "result_" + experiment_name + ".csv"
-    STATS_FILE = os.path.join(STATS_DIR, stat_filename)
-    DICE_METRICS_FILE = os.path.join(
-        STATS_DIR, "detailed_dice_" + experiment_name + ".csv")
 
     ######################## LOAD MODEL ########################
     model = load_model(model_filename,
@@ -121,34 +106,17 @@ if __name__ == "__main__":
     print("Thresholding...")
     utils.threshold(filename, REORIENT_DIR, REORIENT_DIR, 0.5)
 
-    if results.INMASK:
-        mask_src_dir, mask = os.path.split(results.INMASK)
-        preprocess.preprocess(mask,
-                              src_dir=mask_src_dir,
-                              dst_dir=PREPROCESSING_DIR,
-                              tmp_dir=TMPDIR,
-                              verbose=0,
-                              skullstrip_script_path=SKULLSTRIP_SCRIPT_PATH,
-                              remove_tmp_files=True)
+    # move and rename file to target directory
+    src_mask = os.path.join(REORIENT_DIR, filename)
+    dst_mask = os.path.join(DATA_DIR, filename[:filename.find(".nii.gz")] + "_predicted_mask.nii.gz")
+    shutil.move(src_mask, dst_mask)
 
-        # load mask file data
-        mask_obj = nib.load(os.path.join(PREPROCESSING_DIR, mask))
-        mask_img = mask_obj.get_data()
-        mask_img = pad_image(mask_img)
-
-        # write statistics to file
-        print("Collecting stats...")
-        cur_vol_dice, cur_slices_dice, cur_vol, cur_vol_gt = utils.write_stats(filename,
-                                                                               segmented_nii_obj,
-                                                                               mask_obj,
-                                                                               STATS_FILE,
-                                                                               0.5,)
-
-        print("*** Segmentation complete. ***")
-        print("DICE: {:.3f}".format(cur_vol_dice))
-
-
+    # remove intermediate files
     if os.path.exists(TMPDIR):
         shutil.rmtree(TMPDIR)
+    if os.path.exists(PREPROCESSING_DIR):
+        shutil.rmtree(PREPROCESSING_DIR)
+    if os.path.exists(SEG_DIR):
+        shutil.rmtree(SEG_DIR)
 
     K.clear_session()

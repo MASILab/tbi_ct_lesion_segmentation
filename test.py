@@ -19,8 +19,8 @@ from utils import preprocess
 from utils.save_figures import *
 from utils.apply_model import apply_model_single_input
 from utils.pad import pad_image
-from keras.models import load_model
-from keras import backend as K
+from tensorflow.keras.models import load_model
+from tensorflow.keras import backend as K
 from models.losses import *
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'

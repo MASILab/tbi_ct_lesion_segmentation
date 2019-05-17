@@ -123,13 +123,9 @@ def parse_args(session):
     elif session == "test":
         parser.add_argument('--infile', required=True, action='store', dest='INFILE',
                             help='Image to segment')
-        parser.add_argument('--inmask', required=False, action='store', dest='INMASK',
-                            help='Manual mask')
-        parser.add_argument('--model', required=True, action='store', dest='model',
-                            help='Model Architecture (.json) file')
         parser.add_argument('--weights', required=True, action='store', dest='weights',
                             help='Learnt weights (.hdf5) file')
-        parser.add_argument('--segdir', required=True, action='store', dest='segdir',
+        parser.add_argument('--outdir', required=True, action='store', dest='segdir',
                             help='Directory in which to place segmentations')
     elif session == "validate":
         parser.add_argument('--datadir', required=True, action='store', dest='VAL_DIR',
