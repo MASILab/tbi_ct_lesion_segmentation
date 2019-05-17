@@ -1,1 +1,0 @@
---datadir data/train_other_half --psize 128x128 --batch_size 64 --num_patches 1000 --num_channels 1 --experiment_details msl_other_half
