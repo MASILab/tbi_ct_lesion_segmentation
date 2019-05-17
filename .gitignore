@@ -14,6 +14,11 @@ results/
 
 **/*.swp
 
+**/*.r
+**/*.png
+**/*.txt
+**/*.nii.gz
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
