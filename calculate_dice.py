@@ -12,13 +12,14 @@ from utils.pad import pad_image
 
 os.environ['FSLOUTPUTTYPE'] = 'NIFTI_GZ'
 
+
 def get_file_id(filename):
     f = os.path.basename(filename)
     if "mask" in f:
         return f[:f.find("_mask")]
     else:
         return f[:f.find("_thresh")]
-        
+
 
 if __name__ == "__main__":
 
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     in_data = results.IN_DATA
 
     # if directory, then get all pred thresholded mask filenames
-    # compute dice for files which are present in GT dir 
+    # compute dice for files which are present in GT dir
     if os.path.isdir(in_data):
 
         # used only for printing result to console
@@ -45,13 +46,12 @@ if __name__ == "__main__":
         filenames = [x for x in filenames if 'mask' in x]
         filenames.sort()
 
-
         for filename in filenames:
             # verify that the filenames are present in the ground truth directory
             if get_file_id(filename) in gt_ids:
                 gt_filename = os.path.join(GROUND_TRUTH_DIR,
                                            get_file_id(filename) + "_mask.nii.gz")
-                
+
                 gt_obj = nib.load(gt_filename)
                 pred_obj = nib.load(filename)
 
@@ -68,17 +68,13 @@ if __name__ == "__main__":
                 utils.write_dice_scores(filename, cur_vol_dice,
                                         cur_slices_dice, DICE_METRICS_FILE)
 
-        mean_dice += cur_vol_dice
-        pred_vols.append(cur_vol)
-        gt_vols.append(cur_vol_gt)
-
-
-
+                mean_dice += cur_vol_dice
+                pred_vols.append(cur_vol)
+                gt_vols.append(cur_vol_gt)
 
             else:
-                print("Error: {} not found in {}".format(filename, GROUND_TRUTH_DIR))
-
-        
+                print("Error: {} not found in {}".format(
+                    filename, GROUND_TRUTH_DIR))
 
     # if a single file, get Dice for specific file if present in GT dir
     else:
@@ -86,7 +82,7 @@ if __name__ == "__main__":
         if get_file_id(filename) in gt_ids:
             gt_filename = os.path.join(GROUND_TRUTH_DIR,
                                        get_file_id(filename) + "_mask.nii.gz")
-            
+
             gt_obj = nib.load(gt_filename)
             pred_obj = nib.load(filename)
 
@@ -96,11 +92,8 @@ if __name__ == "__main__":
                         stats_file)
 
         else:
-            print("Error: {} not found in {}".format(filename, GROUND_TRUTH_DIR))
-
-
-
-
+            print("Error: {} not found in {}".format(
+                filename, GROUND_TRUTH_DIR))
 
     for filename, mask in zip(filenames, masks):
         # load nifti file data
@@ -170,4 +163,3 @@ if __name__ == "__main__":
     with open(metrics_path, 'w') as f:
         f.write("Dice: {:.4f}\nVolume Correlation: {:.4f}".format(
             mean_dice, corr))
-
