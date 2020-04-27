@@ -4,6 +4,10 @@ def pad_image(img_data, target_dims=None):
     '''
     Pads the image to the nearest greater multiple of 16.
     This is due to the downsample/upsample count in the Unet.
+
+    RETURNS:
+        - new_img: the padded image
+        - pads: the pads used to create this image
     '''
 
     # pad to nearest greater multiple of 2**NUM_DOWNSAMPLES
@@ -49,4 +53,4 @@ def pad_image(img_data, target_dims=None):
         new_img[:,:,:,0] = np.pad(img_data[:,:,:], pads, 'constant', constant_values=0)
         new_img = new_img[:,:,:,0]
 
-    return new_img
+    return new_img, pads
