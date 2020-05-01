@@ -12,6 +12,7 @@ import os
 import numpy as np
 import nibabel as nib
 import shutil
+from pathlib import Path
 from utils import utils
 from utils import preprocess
 from utils.save_figures import *
@@ -29,17 +30,9 @@ if __name__ == "__main__":
     results = utils.parse_args("test")
     num_channels = results.num_channels
 
-    NUM_GPUS = 1
-    if results.GPUID == None:
-        os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    elif results.GPUID == -1:
-        # find maximum number of available GPUs
-        call = "nvidia-smi --list-gpus"
-        pipe = Popen(call, shell=True, stdout=PIPE).stdout
-        available_gpus = pipe.read().decode().splitlines()
-        NUM_GPUS = len(available_gpus)
-    else:
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(results.GPUID)
+    # Boolean flag to make use of gpu
+    if results.GPU == 0:
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
     model_filename = results.weights
 
@@ -67,7 +60,9 @@ if __name__ == "__main__":
 
     ######################## PREPROCESSING ########################
 
-    src_dir, filename = os.path.split(results.INFILE)
+    infile = str([x for x in Path(results.INDIR).iterdir() if ".nii" in x.suffixes][0])
+
+    src_dir, filename = os.path.split(infile)
 
     preprocess.preprocess(filename,
                           src_dir=src_dir,
@@ -88,6 +83,9 @@ if __name__ == "__main__":
     # reshape to account for implicit "1" channel
     nii_img = np.reshape(nii_img, nii_img.shape + (1,))
     nii_img = pad_image(nii_img)
+
+    print(nii_img)
+    print(type(nii_img))
 
     # segment
     segmented_img = apply_model_single_input(nii_img, model)
