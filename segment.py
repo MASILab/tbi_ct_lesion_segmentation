@@ -82,20 +82,44 @@ if __name__ == "__main__":
     # load nifti file data
     nii_obj = nib.load(os.path.join(PREPROCESSING_DIR, filename))
     nii_img = nii_obj.get_data()
-    header = nii_obj.header
-    affine = nii_obj.affine
 
     # reshape to account for implicit "1" channel
     nii_img = np.reshape(nii_img, nii_img.shape + (1,))
-    nii_img = pad_image(nii_img)
+    nii_img, pads = pad_image(nii_img)
 
     # segment
     segmented_img = apply_model_single_input(nii_img, model)
 
+    # Crop back to original dimensions to undo the padding
+    (
+        (left_pad, right_pad),
+        (top_pad, bottom_pad),
+        _,
+    ) = pads
+    if left_pad != 0:
+        segmented_img = segmented_img[left_pad:, ...]
+    if right_pad != 0:
+        segmented_img = segmented_img[:-right_pad, ...]
+    if top_pad != 0:
+        segmented_img = segmented_img[:, top_pad:, ...]
+    if bottom_pad != 0:
+        segmented_img = segmented_img[:, :-bottom_pad, ...]
+
+    if nii_img.shape[:3] != segmented_img.shape:
+        raise ValueError("Shape mismatch when cropping to original size: \n\
+                original: {}\n\
+                segmented: {}\n\
+                Please check above logic.\
+                ".format(nii_img.shape, segmented_img.shape))
+
     # save resultant image
     segmented_filename = os.path.join(SEG_DIR, filename)
-    segmented_nii_obj = nib.Nifti1Image(
-        segmented_img, affine=affine, header=header)
+
+    # use the header from the original image but the affine from the processed
+    # the reason for this is we need the reoriented affine first to fix for 3dresample
+    affine = nii_obj.affine
+    header = nib.load(results.INFILE).header
+    segmented_nii_obj = nib.Nifti1Image(segmented_img, affine=affine)
     nib.save(segmented_nii_obj, segmented_filename)
 
     # Reorient back to original before comparisons
@@ -110,6 +134,18 @@ if __name__ == "__main__":
     src_mask = os.path.join(REORIENT_DIR, filename)
     dst_mask = os.path.join(DATA_DIR, filename[:filename.find(".nii.gz")] + "_predicted_mask.nii.gz")
     shutil.move(src_mask, dst_mask)
+
+    # finally, copy the original header and affine to the mask
+    # although a dangerous operation, here we are guaranteed a match due to how
+    # we generate and process the mask file
+    mask_obj = nib.load(dst_mask)
+    mask_img = mask_obj.get_data()
+    orig_obj = nib.load(results.INFILE)
+    orig_header =  orig_obj.header
+    orig_affine = orig_obj.affine
+
+    mask_obj = nib.Nifti1Image(mask_img, affine=orig_affine, header=orig_header)
+    nib.save(mask_obj, dst_mask)
 
     # remove intermediate files
     if os.path.exists(TMPDIR):
