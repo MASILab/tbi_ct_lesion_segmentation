@@ -67,10 +67,10 @@ Run `segment.py` to classify a single image with some desired arguments:
 `--segdir`: Path to directory in which segmentations will be placed.
 
 Example usage:
-`python validate.py --infile my_data/my_first_image.nii.gz --inmask mydata/my_first_image_mask.nii.gz --weights my_weighs.hdf5 --segdir my_segmentation_dir`
+`python segment.py --infile my_data/my_first_image.nii.gz --inmask mydata/my_first_image_mask.nii.gz --weights my_weighs.hdf5 --segdir my_segmentation_dir`
 
 Example usage if manual mask is unavailable:
-`python validate.py --infile my_data/my_first_image.nii.gz --weights my_weighs.hdf5 --segdir my_segmentation_dir`
+`python segment.py --infile my_data/my_first_image.nii.gz --weights my_weighs.hdf5 --segdir my_segmentation_dir`
 
 ### Test 
 
@@ -81,7 +81,7 @@ Run `test.py` to validate the model on some holdout data for which the ground tr
 `--weights`: path to the trained model weights (.hdf5) to use
 
 Example usage:
-`python validate.py --datadir data/test/ --weights models/weights/my_experiment/my_weights.hdf5`
+`python test.py --datadir data/test/ --weights models/weights/my_experiment/my_weights.hdf5`
 
 ### Image Preprocessing
 Here are all the preprocessing steps which are automatically executed in `train.py`, `validate.py`, and `test.py`.
