@@ -121,10 +121,12 @@ def parse_args(session):
                             default=1500000, type=int,
                             help='Maximum allowed number of patches. Default is all possible.')
     elif session == "test":
-        parser.add_argument('--infile', required=True, action='store', dest='INFILE',
-                            help='Image to segment')
+        parser.add_argument('--indir', required=True, action='store', dest='INDIR',
+                            help='Directory containing image to segment')
         parser.add_argument('--weights', required=True, action='store', dest='weights',
-                            help='Learnt weights (.hdf5) file')
+                            help='Learnt weights on axial plane (.hdf5) file')
+        parser.add_argument('--skullstrip_alg', required=True, action='store', dest='SKULLSTRIP',
+                            help='Path to skullstripping algorithm, currently supports CT_BET.sh')
         parser.add_argument('--outdir', required=True, action='store', dest='segdir',
                             help='Directory in which to place segmentations')
     elif session == "validate":
@@ -155,11 +157,9 @@ def parse_args(session):
                         dest='num_channels', default=1,
                         help='Number of channels to include. First is CT, second is atlas,\
                                 third is unskullstripped CT')
-    parser.add_argument('--gpuid', required=False, action='store', type=int, dest='GPUID',
-                        help='For a multi-GPU system, the trainng can be run on different GPUs.\
-                        Use a GPU id (single number), eg: 1 or 2 to run on that particular GPU.\
-                        0 indicates first GPU.  Optional argument. Default is the first GPU.\
-                        -1 for all GPUs.')
+    parser.add_argument('--gpu', required=False, action='store', type=int, dest='GPU',
+                        help='Integer boolean flag to make use of GPU.\
+                        0 indicates no GPU. 1 indicates use all available GPUs.')
 
 
     return parser.parse_args()
