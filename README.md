@@ -3,8 +3,10 @@
 Segment hematoma slice-wise from head CT images.
 
 
-## Quick Alternative Start: Singularity
+## Quick Alternative Start: Singularity (recommended to apply segmentations)
 The included singularity image is written to process head CT volumes from a single input directory and produce corresponding mask volumes to a single output directory. Segmentations are still applied slice-wise on independent slices. The expected directory hierarchy for this singularity image is a directory with non-contrast head CT volumes of filetype `.nii.gz` in hounsfield units at around 0.5mm in-plane resolution. The best trained multi-site weights are packaged in the container.
+
+All `.nii.gz` files in the input directory will be segmented.
 
 To run, three arguments are needed:
 ```
@@ -14,9 +16,9 @@ GPU_MODE=1 # 0 means disable GPU, 1 means use all available GPUs
 ```
 `singularity run --nv tbi_ct_lesion_segmentation.sif ${INPUT_DIR} ${OUTPUT_DIR} ${GPU_MODE}`
 
-In order to make use of the `--nv` flag, the host computer must have a CUDA-compatible GPU with correct Nvidia Drivers and CUDA installation.
+In order to make use of the mandatory `--nv` flag, the host computer must have a CUDA-compatible GPU with correct Nvidia Drivers and CUDA installation. Note that the `--nv` flag is required even if not setting `GPU_MODE=1`.
 
-## Non-Singularity Directions (possible for re-training)
+## Non-Singularity Directions (recommended if re-training)
 
 ### Directory Setup
 Create data directories and subdirectories as below. Training will be 
