@@ -1,8 +1,23 @@
 # CT Hematoma Segmentation with U-net
 ## Background
-Segment hematoma slice-wise from CT images with traumatic brain injury.
+Segment hematoma slice-wise from head CT images.
 
-## Directions:
+
+## Quick Alternative Start: Singularity
+The included singularity image is written to process a single volume and produce a single mask volume. Segmentations are still applied slice-wise on independent slices. The expected directory hierarchy for this singularity image is a directory with a single `.nii.gz` head CT without contrast in hounsfield units at around 0.5mm in-plane resolution. The best trained multi-site weights are packaged in the container.
+
+To run, three arguments are needed:
+```
+INPUT_DIR=/path/to/input/directory
+OUTPUT_DIR=/path/to/output/directory
+GPU_MODE=1 # 0 means disable GPU, 1 means use all available GPUs
+```
+`singularity run --nv tbi_ct_lesion_segmentation.sif ${INPUT_DIR} ${OUTPUT_DIR} ${GPU_MODE}`
+
+In order to make use of the `--nv` flag, the host computer must have a CUDA-compatible GPU with correct Nvidia Drivers and CUDA installation.
+
+## Non-Singularity Directions (possible for re-training)
+
 ### Directory Setup
 Create data directories and subdirectories as below. Training will be 
 executed over the data in the `train` directory and tested over data in 
@@ -98,4 +113,16 @@ These preprocessing steps require the following external programs:
 - `3dinfo` (included in AFNI)
 
 ### References
-{TODO}
+If this code is helpful, please cite our related work:
+```
+@article{remedios2020distributed,
+  title={Distributed deep learning across multisite datasets for generalized CT hemorrhage segmentation},
+  author={Remedios, Samuel W and Roy, Snehashis and Bermudez, Camilo and Patel, Mayur B and Butman, John A and Landman, Bennett A and Pham, Dzung L},
+  journal={Medical physics},
+  volume={47},
+  number={1},
+  pages={89--98},
+  year={2020},
+  publisher={Wiley Online Library}
+}
+```
