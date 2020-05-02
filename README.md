@@ -4,7 +4,7 @@ Segment hematoma slice-wise from head CT images.
 
 
 ## Quick Alternative Start: Singularity
-The included singularity image is written to process a single volume and produce a single mask volume. Segmentations are still applied slice-wise on independent slices. The expected directory hierarchy for this singularity image is a directory with a single `.nii.gz` head CT without contrast in hounsfield units at around 0.5mm in-plane resolution. The best trained multi-site weights are packaged in the container.
+The included singularity image is written to process head CT volumes from a single input directory and produce corresponding mask volumes to a single output directory. Segmentations are still applied slice-wise on independent slices. The expected directory hierarchy for this singularity image is a directory with non-contrast head CT volumes of filetype `.nii.gz` in hounsfield units at around 0.5mm in-plane resolution. The best trained multi-site weights are packaged in the container.
 
 To run, three arguments are needed:
 ```
